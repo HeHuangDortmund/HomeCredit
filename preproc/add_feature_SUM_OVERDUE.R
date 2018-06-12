@@ -3,7 +3,7 @@
 
 preproc = function(data) {
   
-  ibrary(rprojroot)
+  library(rprojroot)
   library(data.table)
   requireNamespace("lubridate")
   root = find_root(is_git_root)
