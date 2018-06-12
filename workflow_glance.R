@@ -7,7 +7,8 @@ set.seed(1)
 
 # read data
 source(file.path(root,"data", "readData.R"))
-application_train = readData()$application_train
+data = readData()
+application_train = data$application_train
 
 
 
