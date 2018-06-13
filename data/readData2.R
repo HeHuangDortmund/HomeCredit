@@ -2,8 +2,6 @@
 #' @return data.table
 #' @author He Huang
 
-# 步骤I把 application_train 和 application_test 汇总得到 application
-# 步骤II把 bureau 和 bureau_balance 汇总得到 bureauMerged 然后把 application 和 bureauMerged 汇总得到 新的application
 
 
 readData = function(version) {
@@ -12,9 +10,6 @@ readData = function(version) {
   requireNamespace("lubridate")
   root = find_root(is_git_root)
   setwd(root)
-  
-  #POS_CASH_balance = fread("../data/POS_CASH_balance.csv", na.strings = "")
-  #previous_application = fread("../data/previous_application.csv", na.strings = "")
   
   ##############################################################################
   #################    I. application_train and application_test     ###########
@@ -64,30 +59,36 @@ readData = function(version) {
   ################ II. bureau and bureau_balance   #############################
   ##############################################################################
   if(version >= 2){
-    ## 0. read table bureau and bureau_balance, and join by SK_BUREAU_ID
-    bureau = fread("../data/bureau.csv", na.strings = "")
-    bureau_balance = fread("../data/bureau_balance.csv", na.strings = "")
-    
-    ## 1. bureau_balance : from long data to wide data
-    tmp = bureau_balance[,.N, by = list(SK_ID_BUREAU,STATUS)]
-    wideData = dcast(tmp, SK_ID_BUREAU ~ STATUS)
-    
-    ## 2. merge bureau and wide data
-    bureauMerged = merge(bureau, wideData, all.x = TRUE, by = "SK_ID_BUREAU")
-    
-    ## 3. merge application and bureauMerged   
+    source(file.path(root, "data", "readdata_bureau.R"))
+    bureau = readdata()
+    source(file.path(root, "data", "readdata_bureau_balance.R"))
+    bureau_balance = readdata()
+    bureauMerged = merge(bureau, bureau_balance, all.x = TRUE, by = "SK_ID_BUREAU")
     application = merge(application, bureauMerged, all.x = TRUE, by = "SK_ID_CURR")
   }
 
   
   ##############################################################################
-  ################ III. credit_card_balance and installments_payments   ########
+  #III. credit_card_balance installments_payments  POS_CASH_balance  previous_application
   ##############################################################################
   if(version >= 3){
-    credit_card_balance = fread("../data/credit_card_balance.csv", na.strings = "")
-    installments_payments = fread("../data/installments_payments.csv", na.strings = "") 
-    installments_payments[, INSTALMENTS_DPD := DAYS_ENTRY_PAYMENT - DAYS_INSTALMENT] # 逾期天数 >0 代表逾期
-    installments_payments[, INSTALMENTS_LESS := AMT_PAYMENT - AMT_INSTALMENT]        # 少还金额 <0 代表少还了
+    source(file.path(root, "data", "readdata_credit_card_balance.R"))
+    credit_card_balance = readdata()
+    source(file.path(root, "data", "readdata_installments_payments.R"))
+    installments_payments = readdata()
+    merged_1 = merge(credit_card_balance, installments_payments, all.x = TRUE, by = "SK_ID_PREV")
+    
+    
+    source(file.path(root, "data", "readdata_POS_CASH_balance.R"))
+    POS_CASH_balance = readdata()
+    merged_2 = merge(POS_CASH_balance, merged_1, all.x = TRUE, by = "SK_ID_PREV")
+    
+    source(file.path(root, "data", "readdata_previous_application.R"))
+    previous_application = readdata()
+    
+    merged_3 = merge(previous_application, merged_2, all.x = TRUE, by = "SK_ID_PREV")
+    
+    application = merge(application, merged_3, all.x = TRUE, by = "SK_ID_CURR")
   }
 
   return(application)
