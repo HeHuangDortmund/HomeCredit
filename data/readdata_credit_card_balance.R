@@ -9,3 +9,4 @@ readData = function(){
   credit_card_balance = fread("../data/credit_card_balance.csv", na.strings = "")
   return(credit_card_balance)
 }
+
