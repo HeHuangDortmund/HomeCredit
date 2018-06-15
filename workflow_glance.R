@@ -15,7 +15,9 @@ names(data)
 dim(data)
 # missing value
 missValue = sapply(data, function(x) sum(is.na(x))) # too many missing value
-barplot(missValue)
+missValue = missValue[missValue >1100]/dim(data)[1]
+barplot(missValue,las = 2,cex.lab=0.2)
+
 
 # add feature SUM_OVERDUE
 source(file.path(root, "preproc", "add_feature_SUM_OVERDUE.R"))

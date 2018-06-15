@@ -7,6 +7,7 @@
 readData = function(version) {
   library(rprojroot)
   library(data.table)
+  library(mlr)
   requireNamespace("lubridate")
   root = find_root(is_git_root)
   setwd(root)
@@ -53,6 +54,43 @@ readData = function(version) {
     columsBinar = columsBinar[-length(columsBinar)]
     application[, (columsBinar) := lapply(.SD, function(x) as.integer(x)-1),
                 .SDcols = columsBinar] 
+    
+    
+    # 接下来把缺失值也填补了， 少数几个变量手动填补，其余的批量填补
+    # numeric 用均值填补，然后生成心变量标注NA， factor直接填补为常量
+    
+    # AMT_ANNUITY 只有36个缺失值， 直接用均值填补，
+
+    application$AMT_ANNUITY[is.na(application$AMT_ANNUITY)] = mean(application$AMT_ANNUITY, na.rm = TRUE)
+    
+    # AMT_GOODS_PRICE 只有278个确实值 ， 用均值填补
+    application$AMT_GOODS_PRICE[is.na(application$AMT_GOODS_PRICE)] = mean(application$AMT_GOODS_PRICE, na.rm = TRUE)
+    
+    
+    # CNT_FAM_MEMBERS 2
+    application$CNT_FAM_MEMBERS[is.na(application$CNT_FAM_MEMBERS)] = mean(application$CNT_FAM_MEMBERS, na.rm = TRUE)
+    
+    # EXT_SOURCE_2  668 缺失值少 ， 均值填补
+    application$EXT_SOURCE_2[is.na(application$EXT_SOURCE_2)] = mean(application$EXT_SOURCE_2, na.rm = TRUE)
+    
+    # DAYS_LAST_PHONE_CHANGE  1个缺失值， 均值填补
+    application$DAYS_LAST_PHONE_CHANGE[is.na(application$DAYS_LAST_PHONE_CHANGE)] = mean(application$DAYS_LAST_PHONE_CHANGE, na.rm = TRUE)
+    
+    
+
+    
+    # factor(category) 同意用常量 “miss” 填补
+    application = impute(as.data.frame(application), classes = list(factor = imputeConstant("miss")))$data
+    # numeric 标注NA, 然后用均值填补， 
+    missValue = sapply(application, function(x) sum(is.na(x))) # too many missing value
+    missValue = missValue[missValue >0]
+    missVar = names(missValue)
+    for (VAR in missVar) {
+      application = cbind(application,as.integer(is.na(application[,VAR])))
+    }
+    application = impute(application, classes = list(numeric = imputeMean()))$data
+    
+    application = as.data.table(application)
   }
   
   ##############################################################################
