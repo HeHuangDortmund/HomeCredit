@@ -13,7 +13,7 @@ data = readData(version = 1)
 data$TARGET = as.double(data$TARGET)
 data$TARGET[data$split == "test"] = 0
 
-names(data)
+dim(data)
 data = createDummyFeatures(as.data.frame(data), target = "TARGET", 
                            cols = names(data)[unlist(lapply(data, function(x) is.factor(x)))],
                            method = "reference")
@@ -29,12 +29,24 @@ train$SK_ID_CURR = NULL
 SK_ID_CURR = test$SK_ID_CURR
 test$SK_ID_CURR = NULL
 
-# 一下数据在训练集中为常量 ，删除
+# 以下数据在训练集中为常量 
 const = unlist(lapply(train, function(x) sd(x) == 0))
 constan = names(train)[const]
 train[constan]= NULL
 test[constan] = NULL
 
+corr = cor(train)
+write.csv(corr, file.path(root,"predict", "1506","corr.csv"))
+
+dim(corr)
+
+nr = c()
+for (i in 1:267) {
+  nr[i] = sum(corr[,i] == 1)
+  cat(i," : ",nr[i],"\n")
+}
+
+names(train)[106]
 
 
 regr.task = makeRegrTask(id = "reg", data = as.data.frame(train), target = "TARGET")

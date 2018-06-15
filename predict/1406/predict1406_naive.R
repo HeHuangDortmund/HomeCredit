@@ -13,7 +13,7 @@ train = data[data$split == "train",]
 test = data[data$split == "test",]
 
 
-
+plot(data$ELEVATORS_AVG, data$ELEVATORS_MEDI)
 
 # data version 1
 data = readData(version = 1)

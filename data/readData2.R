@@ -31,16 +31,18 @@ readData = function(version) {
     
     ## 2. Category Variablen as Factor or Interger
     numberOfValues = unlist(lapply(application, function(x){length(unique(x))}))
+    
+    
     # 0 < numberOfValues < 20 is Category Variablen, as Factor
-    IndexOfCategory = (numberOfValues < 20 | names(application) == "ORGANIZATION_TYPE") & 
-      !(names(application) %in% c("CNT_CHILDREN", 
+    IndexOfCategory = (numberOfValues < 20 | names(application) == "ORGANIZATION_TYPE" ) & (names(application) != "AMT_REQ_CREDIT_BUREAU_QRT")&
+      (!(names(application) %in% c("CNT_CHILDREN", 
                                   "CNT_FAM_MEMBERS", 
                                   "EF_30_CNT_SOCIAL_CIRCL", 
                                   "DEF_60_CNT_SOCIAL_CIRCLE",
                                   "AMT_REQ_CREDIT_BUREAU_HOUR",
                                   "AMT_REQ_CREDIT_BUREAU_DAY",
                                   "AMT_REQ_CREDIT_BUREAU_WEEK",
-                                  "AMT_REQ_CREDIT_BUREAU_QRT "))
+                                  "AMT_REQ_CREDIT_BUREAU_QRT ")))
     
     columsCategory = names(application)[IndexOfCategory]
     columsCategory = columsCategory[-length(columsCategory)]
@@ -56,6 +58,12 @@ readData = function(version) {
                 .SDcols = columsBinar] 
     
     
+    # factor(category) 同意用常量 “miss” 填补
+    application = impute(as.data.frame(application), classes = list(factor = imputeConstant("miss")))$data
+    
+    FAC = sapply(application, function(x) is.factor(x))
+    names(application)[FAC]
+    
     # 接下来把缺失值也填补了， 少数几个变量手动填补，其余的批量填补
     # numeric 用均值填补，然后生成心变量标注NA， factor直接填补为常量
     
@@ -66,7 +74,6 @@ readData = function(version) {
     # AMT_GOODS_PRICE 只有278个确实值 ， 用均值填补
     application$AMT_GOODS_PRICE[is.na(application$AMT_GOODS_PRICE)] = mean(application$AMT_GOODS_PRICE, na.rm = TRUE)
     
-    
     # CNT_FAM_MEMBERS 2
     application$CNT_FAM_MEMBERS[is.na(application$CNT_FAM_MEMBERS)] = mean(application$CNT_FAM_MEMBERS, na.rm = TRUE)
     
@@ -76,18 +83,46 @@ readData = function(version) {
     # DAYS_LAST_PHONE_CHANGE  1个缺失值， 均值填补
     application$DAYS_LAST_PHONE_CHANGE[is.na(application$DAYS_LAST_PHONE_CHANGE)] = mean(application$DAYS_LAST_PHONE_CHANGE, na.rm = TRUE)
     
-    
 
-    
-    # factor(category) 同意用常量 “miss” 填补
-    application = impute(as.data.frame(application), classes = list(factor = imputeConstant("miss")))$data
     # numeric 标注NA, 然后用均值填补， 
     missValue = sapply(application, function(x) sum(is.na(x))) # too many missing value
     missValue = missValue[missValue >0]
+    missValue = sort(missValue)
     missVar = names(missValue)
-    for (VAR in missVar) {
-      application = cbind(application,as.integer(is.na(application[,VAR])))
-    }
+    # barplot(missValue,las = 2,cex.lab=0.2)
+    
+    # OBS_30_CNT_SOCIAL_CIRCLE,OBS_60_CNT_SOCIAL_CIRCLE,DEF_60_CNT_SOCIAL_CIRCLE,
+    # AMT_REQ_CREDIT_BUREAU_HOUR,AMT_REQ_CREDIT_BUREAU_DAY,AMT_REQ_CREDIT_BUREAU_WEEK,AMT_REQ_CREDIT_BUREAU_MON,AMT_REQ_CREDIT_BUREAU_YEAR,
+    # YEARS_BEGINEXPLUATATION_AVG, YEARS_BEGINEXPLUATATION_MODE, YEARS_BEGINEXPLUATATION_MEDI,
+    # FLOORSMAX_AVG ,FLOORSMAX_MODE,FLOORSMAX_MEDI,
+    # LIVINGAREA_AVG,LIVINGAREA_MODE,LIVINGAREA_MEDI,
+    # ENTRANCES_AVG,ENTRANCES_MODE,ENTRANCES_MEDI,
+    # ...
+    
+    
+    application$NA_CIRCLE = as.integer(is.na(application$OBS_30_CNT_SOCIAL_CIRCLE))
+    application$NA_AMT_REQ = as.integer(is.na(application$AMT_REQ_CREDIT_BUREAU_DAY))
+    application$NA_YEARS_BEGINEXPLUATATION = as.integer(is.na(application$YEARS_BEGINEXPLUATATION_AVG))
+    application$NA_FLOORSMAX = as.integer(is.na(application$FLOORSMAX_AVG))
+    application$NA_LIVINGAREA = as.integer(is.na(application$LANDAREA_AVG))
+    application$NA_ENTRANCES = as.integer(is.na(application$ENTRANCES_AVG))
+    application$NA_APARTMENT = as.integer(is.na(application$APARTMENTS_AVG))
+    application$NA_ELEVATORS = as.integer(is.na(application$ELEVATORS_AVG))
+    application$NA_NONLIVINGAREA = as.integer(is.na(application$NONLIVINGAREA_AVG))
+    application$NA_BASEMENTAREA = as.integer(is.na(application$BASEMENTAREA_AVG))
+    application$NA_LANDAREA = as.integer(is.na(application$LANDAREA_AVG))
+    application$NA_YEARS_BUILD = as.integer(is.na(application$YEARS_BUILD_AVG))
+    application$NA_FLOORSMIN = as.integer(is.na(application$FLOORSMIN_AVG))
+    application$NA_LIVINGAPARTMENTS = as.integer(is.na(application$LIVINGAPARTMENTS_AVG))
+    application$NA_NONLIVINGAPARTMENTS = as.integer(is.na(application$NONLIVINGAPARTMENTS_AVG))
+    application$NA_COMMONAREA = as.integer(is.na(application$COMMONAREA_AVG))
+    
+    # EXT_SOURCE_3 TOTALAREA_MODE  EXT_SOURCE_1 OWN_CAR_AGE
+    application$NA_EXT_SOURCE_3 = as.integer(is.na(application$EXT_SOURCE_3))
+    application$NA_EXT_SOURCE_1 = as.integer(is.na(application$EXT_SOURCE_1))
+    application$NA_TOTALAREA_MODE = as.integer(is.na(application$TOTALAREA_MODE))
+    application$NA_OWN_CAR_AGE = as.integer(is.na(application$OWN_CAR_AGE))
+    
     application = impute(application, classes = list(numeric = imputeMean()))$data
     
     application = as.data.table(application)
