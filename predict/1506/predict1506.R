@@ -35,18 +35,14 @@ constan = names(train)[const]
 train[constan]= NULL
 test[constan] = NULL
 
-corr = cor(train)
-write.csv(corr, file.path(root,"predict", "1506","corr.csv"))
 
-dim(corr)
+#nr = c()
+#for (i in 1:267) {
+#  nr[i] = sum(corr[,i] == 1)
+#  cat(i," : ",nr[i],"\n")
+#}
 
-nr = c()
-for (i in 1:267) {
-  nr[i] = sum(corr[,i] == 1)
-  cat(i," : ",nr[i],"\n")
-}
 
-names(train)[106]
 
 
 regr.task = makeRegrTask(id = "reg", data = as.data.frame(train), target = "TARGET")
@@ -61,7 +57,7 @@ lrn.ctree = makeLearner("regr.ctree")
 mod.ctree = train(lrn.ctree, regr.task)
 mod.log = train(lrn.logis, kassif.tast)
 
-task.pred.ctree = predict(mod.log, newdata = test)
+task.pred.ctree = predict(mod.ctree, newdata = test)
 task.pred.log = predict(mod.log, newdata = test)
 
 pred.ctree = task.pred.ctree$data$response
@@ -72,7 +68,7 @@ length(pred.log)
 pred_ctree = data.frame(SK_ID_CURR = SK_ID_CURR, TARGET = pred.ctree)
 pred_log = data.frame(SK_ID_CURR = SK_ID_CURR, TARGET = pred.log)
 
-write.csv(pred_ctree, file.path(root,"predict", "1506","submisssions1506_2.csv"), row.names = FALSE)
+write.csv(pred_ctree, file.path(root,"predict", "1506","submisssions1506_4.csv"), row.names = FALSE)
 write.csv(pred_log, file.path(root,"predict", "1506","submisssions1506_3.csv"), row.names = FALSE)
 
 
