@@ -72,4 +72,36 @@ write.csv(pred_ctree, file.path(root,"predict", "1506","submisssions1506_4.csv")
 write.csv(pred_log, file.path(root,"predict", "1506","submisssions1506_3.csv"), row.names = FALSE)
 
 
+# keras 
+library(tensorflow)
+require(keras)
+library(dplyr)
 
+shape = dim(train)[2] - 1
+inp = layer_input(shape = c(shape), name = 'inp')
+
+combined_model <- inp %>%
+  layer_dense(units=256, activation = "tanh") %>%
+  #layer_dropout(rate = 0.1) %>%
+  layer_dense(units=128, activation = "tanh") %>%
+  #layer_dropout(rate = 0.1) %>%
+  layer_dense(units=64, activation = "tanh") %>%
+  #layer_dropout(rate = 0.1) %>%
+  layer_dense(units=1,activation = "sigmoid")
+
+## 4 model build
+model <- keras::keras_model(inputs = inp,
+                            outputs = combined_model)
+
+
+#sgd = optimizer_sgd(lr=1e-9, decay=1e-12, momentum=0.9, nesterov=FALSE)
+model %>% compile(loss = "mse", optimizer = "sgd", metric="mean_absolute_error")
+summary(model)
+
+names(train)
+
+modelFit = fit(model, x = as.matrix(train[,-105]),
+               y= as.matrix(train[,105]) , epochs = 100, batch_size = 2^13)
+y.hat = predict(model, as.matrix(test))
+pred_nn = data.frame(SK_ID_CURR = SK_ID_CURR, TARGET = y.hat)
+write.csv(pred_nn, file.path(root,"predict", "1506","submisssions1506_5.csv"), row.names = FALSE)
