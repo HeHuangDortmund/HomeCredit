@@ -88,12 +88,12 @@ inp = layer_input(shape = c(shape), name = 'inp')
 
 combined_model <- inp %>%
   layer_dense(units=256, activation = "tanh") %>%
-  layer_dropout(rate = 0.1) %>%
+  layer_dropout(rate = 0.5) %>%
   layer_dense(units=128, activation = "tanh") %>%
-  layer_dropout(rate = 0.1) %>%
+  layer_dropout(rate = 0.5) %>%
   layer_dense(units=64, activation = "tanh") %>%
-  layer_dropout(rate = 0.1) %>%
-  layer_dense(units=1,activation = "sigmoid")
+  layer_dropout(rate = 0.5) %>%
+  layer_dense(units=1)
 
 ## 4 model build
 model <- keras::keras_model(inputs = inp,
@@ -109,7 +109,7 @@ summary(model)
 #               y= as.matrix(train[,105]) , epochs = 100, batch_size = 2^13)
 
 
-set.seed(2)
+set.seed(1024)
 ind <- sample(2, nrow(train), replace = TRUE, prob=c(0.7, 0.3))
 trainset <- train[ind == 1,]
 valiset <- train[ind == 2,]
@@ -125,4 +125,4 @@ model %>% fit(x = as.matrix(trainset[,-105]),
 
 y.hat = predict(model, as.matrix(test))
 pred_nn = data.frame(SK_ID_CURR = SK_ID_CURR, TARGET = y.hat)
-write.csv(pred_nn, file.path(root,"predict", "1606","submisssions1606_1.csv"), row.names = FALSE)
+write.csv(pred_nn, file.path(root,"predict", "1606","submisssions1606_2.csv"), row.names = FALSE)
