@@ -301,21 +301,20 @@ readData = function(version) {
   if(version >= 3){
     source(file.path(root, "data", "readdata_credit_card_balance.R"))
     credit_card_balance = readData()
+    application = merge(application, credit_card_balance, all.x = TRUE, by = "SK_ID_CURR")
+    
     source(file.path(root, "data", "readdata_installments_payments.R"))
     installments_payments = readData()
-    merged_1 = merge(credit_card_balance, installments_payments, all.x = TRUE, by = "SK_ID_PREV")
-    
-    
+    application = merge(application, installments_payments, all.x = TRUE, by = "SK_ID_CURR")
+
     source(file.path(root, "data", "readdata_POS_CASH_balance.R"))
     POS_CASH_balance = readData()
-    merged_2 = merge(POS_CASH_balance, merged_1, all.x = TRUE, by = "SK_ID_PREV")
+    application = merge(application, POS_CASH_balance, all.x = TRUE, by = "SK_ID_CURR")
     
     source(file.path(root, "data", "readdata_previous_application.R"))
     previous_application = readData()
-    
-    merged_3 = merge(previous_application, merged_2, all.x = TRUE, by = "SK_ID_PREV")
-    
-    application = merge(application, merged_3, all.x = TRUE, by = "SK_ID_CURR")
+    application = merge(application, previous_application, all.x = TRUE, by = "SK_ID_CURR")
+
   }
   
   return(application)
