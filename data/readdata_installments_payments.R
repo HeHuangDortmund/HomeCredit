@@ -44,6 +44,10 @@ readData = function(exploratory = 0){
                                    AMT_PAYMENT_MEAN = mean(AMT_PAYMENT, na.rm = TRUE),
                                    INSTALMENTS_DPD_MEAN = mean(INSTALMENTS_DPD, na.rm = TRUE),
                                    INSTALMENTS_LESS_MEAN = mean(INSTALMENTS_LESS, na.rm=TRUE)), by = SK_ID_CURR]
+  temp$DAYS_ENTRY_PAYMENT_MEAN[is.nan(temp$DAYS_ENTRY_PAYMENT_MEAN)] = NA
+  temp$AMT_PAYMENT_MEAN[is.nan(temp$AMT_PAYMENT_MEAN)] = NA
+  temp$INSTALMENTS_DPD_MEAN[is.nan(temp$INSTALMENTS_DPD_MEAN)] = NA
+  temp$INSTALMENTS_LESS_MEAN[is.nan(temp$INSTALMENTS_LESS_MEAN)] = NA
   
   if (exploratory == 1){
     sapply(names(installments_payments), makeplot, "installments_payments", "density")
