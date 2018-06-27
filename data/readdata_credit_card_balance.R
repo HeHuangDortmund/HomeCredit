@@ -1,4 +1,5 @@
-readData = function(exploratory = 0){
+readData = function(exploratory = 0,
+                    version = 1){
   library(rprojroot)
   library(data.table)
   root = find_root(is_git_root)
@@ -30,19 +31,24 @@ readData = function(exploratory = 0){
   }
   
   credit_card_balance = fread("../data/credit_card_balance.csv", na.strings = "")
-  varCategory = names(credit_card_balance)[sapply(credit_card_balance, function(x) is.character(x))]
-  varNumeric = setdiff(names(credit_card_balance),varCategory)
-  sort(sapply(credit_card_balance,function(x) sum(is.na(x))))
+  if (exploratory == 1){
+    varCategory = names(credit_card_balance)[sapply(credit_card_balance, function(x) is.character(x))]
+    varNumeric = setdiff(names(credit_card_balance),varCategory)
+    sapply(varCategory, makeplot, "credit_card_balance", "barplot")
+    sapply(varNumeric, makeplot, "credit_card_balance", "density")
+  }
   
-  credit_card_balance$AMT_DRAWINGS_ATM_CURRENT[is.na(credit_card_balance$AMT_DRAWINGS_ATM_CURRENT)] = 0
-  credit_card_balance$AMT_DRAWINGS_OTHER_CURRENT[is.na(credit_card_balance$AMT_DRAWINGS_OTHER_CURRENT)] = 0
-  credit_card_balance$AMT_DRAWINGS_POS_CURRENT[is.na(credit_card_balance$AMT_DRAWINGS_POS_CURRENT)] = 0
-  credit_card_balance$CNT_DRAWINGS_ATM_CURRENT[is.na(credit_card_balance$CNT_DRAWINGS_ATM_CURRENT)] = 0
-  credit_card_balance$CNT_DRAWINGS_OTHER_CURRENT[is.na(credit_card_balance$CNT_DRAWINGS_OTHER_CURRENT)] = 0
-  credit_card_balance$CNT_DRAWINGS_POS_CURRENT[is.na(credit_card_balance$CNT_DRAWINGS_POS_CURRENT)] = 0
-  credit_card_balance$AMT_INST_MIN_REGULARITY[is.na(credit_card_balance$AMT_INST_MIN_REGULARITY)] = 0
-  credit_card_balance$AMT_PAYMENT_CURRENT[is.na(credit_card_balance$AMT_PAYMENT_CURRENT)] = 0
-  credit_card_balance$CNT_INSTALMENT_MATURE_CUM[is.na(credit_card_balance$CNT_INSTALMENT_MATURE_CUM)] = 0 # 暂时补0,需merge installments 信息
+  if (version == 2){ # aggregation之前先用0填补一部分NA, version==1 直接汇总
+    credit_card_balance$AMT_DRAWINGS_ATM_CURRENT[is.na(credit_card_balance$AMT_DRAWINGS_ATM_CURRENT)] = 0
+    credit_card_balance$AMT_DRAWINGS_OTHER_CURRENT[is.na(credit_card_balance$AMT_DRAWINGS_OTHER_CURRENT)] = 0
+    credit_card_balance$AMT_DRAWINGS_POS_CURRENT[is.na(credit_card_balance$AMT_DRAWINGS_POS_CURRENT)] = 0
+    credit_card_balance$CNT_DRAWINGS_ATM_CURRENT[is.na(credit_card_balance$CNT_DRAWINGS_ATM_CURRENT)] = 0
+    credit_card_balance$CNT_DRAWINGS_OTHER_CURRENT[is.na(credit_card_balance$CNT_DRAWINGS_OTHER_CURRENT)] = 0
+    credit_card_balance$CNT_DRAWINGS_POS_CURRENT[is.na(credit_card_balance$CNT_DRAWINGS_POS_CURRENT)] = 0
+    credit_card_balance$AMT_INST_MIN_REGULARITY[is.na(credit_card_balance$AMT_INST_MIN_REGULARITY)] = 0
+    credit_card_balance$AMT_PAYMENT_CURRENT[is.na(credit_card_balance$AMT_PAYMENT_CURRENT)] = 0
+    credit_card_balance$CNT_INSTALMENT_MATURE_CUM[is.na(credit_card_balance$CNT_INSTALMENT_MATURE_CUM)] = 0 # 暂时补0,需merge installments 信息
+  }
   
   temp = credit_card_balance[,.(N = .N,
                                 AMT_BALANCE_MEAN = mean(AMT_BALANCE, na.rm = TRUE),
@@ -65,7 +71,7 @@ readData = function(exploratory = 0){
                                 CNT_INSTALMENT_MATURE_CUM_MEAN = mean(CNT_INSTALMENT_MATURE_CUM,na.rm=TRUE),
                                 SK_DPD_SUM = sum(SK_DPD),
                                 SK_DPD_DEF_SUM = sum(SK_DPD_DEF)),by = list(SK_ID_CURR,SK_ID_PREV)]
-  
+
   credit_card_balance$NAME_CONTRACT_STATUS[credit_card_balance$NAME_CONTRACT_STATUS != "Active" & credit_card_balance$NAME_CONTRACT_STATUS != "Completed"] = "Other"
   tempCONTRACT = credit_card_balance[,.N,by = list(SK_ID_CURR, NAME_CONTRACT_STATUS)]
   tempCONTRACTwide = dcast(tempCONTRACT, SK_ID_CURR ~ NAME_CONTRACT_STATUS, fill = 0)
@@ -93,14 +99,9 @@ readData = function(exploratory = 0){
                   CNT_INSTALMENT_MATURE_CUM_MEAN = mean(CNT_INSTALMENT_MATURE_CUM_MEAN),
                   SK_DPD_SUM = sum(SK_DPD_SUM),
                   SK_DPD_DEF_SUM = sum(SK_DPD_DEF_SUM),
-                  NAME_CONTRACT_STATUS_Active = sum(NAME_CONTRACT_STATUS_Active),
-                  NAME_CONTRACT_STATUS_Completed = sum(NAME_CONTRACT_STATUS_Completed),
-                  NAME_CONTRACT_STATUS_Other = sum(NAME_CONTRACT_STATUS_Other)),by = SK_ID_CURR]
-  
-  if (exploratory == 1){
-    sapply(varCategory, makeplot, "credit_card_balance", "barplot")
-    sapply(varNumeric, makeplot, "credit_card_balance", "density")
-  }
+                  NAME_CONTRACT_STATUS_PREV_CREDIT_Active = sum(NAME_CONTRACT_STATUS_Active),
+                  NAME_CONTRACT_STATUS_PREV_CREDIT_Completed = sum(NAME_CONTRACT_STATUS_Completed),
+                  NAME_CONTRACT_STATUS_PREV_CREDIT_Other = sum(NAME_CONTRACT_STATUS_Other)),by = SK_ID_CURR]
   
   credit_card_balance = temp2
   return(credit_card_balance)

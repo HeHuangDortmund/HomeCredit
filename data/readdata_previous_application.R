@@ -1,4 +1,5 @@
-readData = function(exploratory = 0){
+readData = function(exploratory = 0,
+                    version = 1){
   library(rprojroot)
   library(data.table)
   root = find_root(is_git_root)
@@ -7,6 +8,7 @@ readData = function(exploratory = 0){
   # THINGS TO DO:
   # 1. outlier以及NA的处理: DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE_1ST_VERSION, DAYS_LAST_DUE, DAYS_TERMINATION, NFLAG_INSURED_ON_APPROVAL
   # 2. 变量 SELLERPLACE_AREA 的处理 
+  # 3. XNA & XAP?
   ########################################################################################
   #### Define some functions
   makeplot <- function(var, type){
@@ -72,46 +74,56 @@ readData = function(exploratory = 0){
     sapply(varCategory, makeplot, "barplot")
     sapply(varNumeric, makeplot, "density")
   }
-  ## first fill NAs
-  # 1.AMT_ANNUITY(与AMT_APPLICATION成一定比例, 并基于NAME_CONTRACT_STATUS状态构成一定相异性)
-  previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) & previous_application$NAME_CONTRACT_STATUS == "Approved"] = 
-    mean(previous_application$AMT_ANNUITY[previous_application$NAME_CONTRACT_STATUS == "Approved" & !is.na(previous_application$AMT_ANNUITY)], na.rm = TRUE) # approved类的求mean
-  previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) &
-                                     previous_application$NAME_CONTRACT_STATUS == "Canceled" & 
-                                     previous_application$AMT_APPLICATION == 0 & 
-                                     previous_application$AMT_CREDIT == 0] = 0 # canceled类, 如果AMT_APPLICATION ==0, 则补0
-  previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) &
-                                     previous_application$NAME_CONTRACT_STATUS == "Canceled" & 
-                                     previous_application$AMT_APPLICATION != 0 & 
-                                     previous_application$AMT_CREDIT != 0] = mean(previous_application$AMT_ANNUITY[previous_application$NAME_CONTRACT_STATUS == "Canceled" & !is.na(previous_application$AMT_ANNUITY)], na.rm = TRUE) # canceled类, 如果AMT_APPLICATION !=0, 则求mean
-  previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) &
-                                     previous_application$NAME_CONTRACT_STATUS == "Refused" & 
-                                     previous_application$AMT_APPLICATION == 0 | 
-                                     previous_application$AMT_CREDIT == 0] = 0 # refused类, 如果AMT_APPLICATION ==0 或者 AMT_CREDIT == 0, 则补0
-  previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) &
-                                     previous_application$NAME_CONTRACT_STATUS == "Refused" & 
-                                     previous_application$AMT_APPLICATION != 0 & 
-                                     previous_application$AMT_CREDIT != 0] = mean(previous_application$AMT_ANNUITY[previous_application$NAME_CONTRACT_STATUS == "Refused" & !is.na(previous_application$AMT_ANNUITY)], na.rm = TRUE)
-  previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) &
-                                     previous_application$NAME_CONTRACT_STATUS == "Unused offer" & 
-                                     previous_application$AMT_APPLICATION == 0 & 
-                                     previous_application$AMT_CREDIT == 0] = 0
-  previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) &
-                                     previous_application$NAME_CONTRACT_STATUS == "Unused offer" & 
-                                     previous_application$AMT_APPLICATION != 0 & 
-                                     previous_application$AMT_CREDIT != 0] = mean(previous_application$AMT_ANNUITY[previous_application$NAME_CONTRACT_STATUS == "Unused offer" & !is.na(previous_application$AMT_ANNUITY)], na.rm = TRUE)
-  # 2. CNT_PAYMENT (fill with mean)
-  previous_application = fillNA("CNT_PAYMENT")
   
-  # 3. AMT_CREDIT (only one NA, fill it with 0, since its corresponding AMT_APPLICATION is 0, AMT_CREDIT与AMT_APPLICATION高度相关)
-  previous_application$AMT_CREDIT[is.na(previous_application$AMT_CREDIT)] = 0
-  
-  # 4. AMT_GOODS_PRICE(fill with mean)
-  previous_application = fillNA("AMT_GOODS_PRICE")
+  if (version == 2){
+    ## first fill NAs
+    # 1.AMT_ANNUITY(与AMT_APPLICATION成一定比例, 并基于NAME_CONTRACT_STATUS状态构成一定相异性)
+    previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) & previous_application$NAME_CONTRACT_STATUS == "Approved"] = 
+      mean(previous_application$AMT_ANNUITY[previous_application$NAME_CONTRACT_STATUS == "Approved" & !is.na(previous_application$AMT_ANNUITY)], na.rm = TRUE) # approved类的求mean
+    previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) &
+                                       previous_application$NAME_CONTRACT_STATUS == "Canceled" & 
+                                       previous_application$AMT_APPLICATION == 0 & 
+                                       previous_application$AMT_CREDIT == 0] = 0 # canceled类, 如果AMT_APPLICATION ==0, 则补0
+    previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) &
+                                       previous_application$NAME_CONTRACT_STATUS == "Canceled" & 
+                                       previous_application$AMT_APPLICATION != 0 & 
+                                       previous_application$AMT_CREDIT != 0] = mean(previous_application$AMT_ANNUITY[previous_application$NAME_CONTRACT_STATUS == "Canceled" & !is.na(previous_application$AMT_ANNUITY)], na.rm = TRUE) # canceled类, 如果AMT_APPLICATION !=0, 则求mean
+    previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) &
+                                       previous_application$NAME_CONTRACT_STATUS == "Refused" & 
+                                       previous_application$AMT_APPLICATION == 0 | 
+                                       previous_application$AMT_CREDIT == 0] = 0 # refused类, 如果AMT_APPLICATION ==0 或者 AMT_CREDIT == 0, 则补0
+    previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) &
+                                       previous_application$NAME_CONTRACT_STATUS == "Refused" & 
+                                       previous_application$AMT_APPLICATION != 0 & 
+                                       previous_application$AMT_CREDIT != 0] = mean(previous_application$AMT_ANNUITY[previous_application$NAME_CONTRACT_STATUS == "Refused" & !is.na(previous_application$AMT_ANNUITY)], na.rm = TRUE)
+    previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) &
+                                       previous_application$NAME_CONTRACT_STATUS == "Unused offer" & 
+                                       previous_application$AMT_APPLICATION == 0 & 
+                                       previous_application$AMT_CREDIT == 0] = 0
+    previous_application$AMT_ANNUITY[is.na(previous_application$AMT_ANNUITY) &
+                                       previous_application$NAME_CONTRACT_STATUS == "Unused offer" & 
+                                       previous_application$AMT_APPLICATION != 0 & 
+                                       previous_application$AMT_CREDIT != 0] = mean(previous_application$AMT_ANNUITY[previous_application$NAME_CONTRACT_STATUS == "Unused offer" & !is.na(previous_application$AMT_ANNUITY)], na.rm = TRUE)
+    # 2. CNT_PAYMENT (fill with mean)
+    previous_application = fillNA("CNT_PAYMENT")
+    
+    # 3. AMT_CREDIT (only one NA, fill it with 0, since its corresponding AMT_APPLICATION is 0, AMT_CREDIT与AMT_APPLICATION高度相关)
+    previous_application$AMT_CREDIT[is.na(previous_application$AMT_CREDIT)] = 0
+    
+    # 4. AMT_GOODS_PRICE(fill with mean)
+    previous_application = fillNA("AMT_GOODS_PRICE")
+    
+    # 5. PRODUCT_COMBINATION (346 missing values filled with "miss")
+    previous_application$PRODUCT_COMBINATION[is.na(previous_application$PRODUCT_COMBINATION)] = "miss"
+    
+    # 6. NAME_TYPE_SUITE
+    previous_application$NAME_TYPE_SUITE[is.na(previous_application$NAME_TYPE_SUITE)] = "miss"
+
+  }
   
   ## NUMERIC aggregation
   temp = previous_application[, .(CNT_PREV = .N,
-                                  AMT_ANNUITY_MEAN = mean(AMT_ANNUITY, na.rm = TRUE),
+                                  AMT_ANNUITY_PREV_APP_MEAN = mean(AMT_ANNUITY, na.rm = TRUE),
                                   AMT_APPLICATION_MEAN = mean(AMT_APPLICATION, na.rm = TRUE),
                                   AMT_CREDIT_MEAN = mean(AMT_CREDIT, na.rm = TRUE),
                                   AMT_DOWN_PAYMENT_MEAN = mean(AMT_DOWN_PAYMENT, na.rm = TRUE),
@@ -130,10 +142,6 @@ readData = function(exploratory = 0){
                                   DAYS_LAST_DUE_MEAN = mean(DAYS_LAST_DUE, na.rm = TRUE),
                                   DAYS_TERMINATION_MEAN = mean(DAYS_TERMINATION, na.rm = TRUE)), by = SK_ID_CURR]  
   ## CATEGORY aggregation
-  # fill NAs in PRODUCT_COMBINATION (346 missing values filled with "miss")
-  previous_application$PRODUCT_COMBINATION[is.na(previous_application$PRODUCT_COMBINATION)] = "miss"
-  # fill NAs in NAME_TYPE_SUITE
-  previous_application$NAME_TYPE_SUITE[is.na(previous_application$NAME_TYPE_SUITE)] = "miss"
   # re-categorize NAME_CASH_LOAN_PURPOSE and NAME_GOODS_CATEGORY
   previous_application$NAME_CASH_LOAN_PURPOSE[previous_application$NAME_CASH_LOAN_PURPOSE != "XAP" & previous_application$NAME_CASH_LOAN_PURPOSE != "XNA"] = "Other"
   previous_application$NAME_GOODS_CATEGORY[previous_application$NAME_GOODS_CATEGORY != "XNA" &
@@ -142,39 +150,46 @@ readData = function(exploratory = 0){
                                              previous_application$NAME_GOODS_CATEGORY != "Audio/Video" & 
                                              previous_application$NAME_GOODS_CATEGORY != "Furniture" &
                                              previous_application$NAME_GOODS_CATEGORY != "Computers"] = "Other"
+  # replace XNA with NA
+  # numXNA = sapply(previous_application, function(x) sum(x == "XNA"))
+  # listXNA = names(previous_application)[numXNA > 0 & !is.na(numXNA)]
+  previous_application[previous_application == "XNA"] = NA
+  
   for (i in 1:length(varCategory)){
     temp = mergeCategory(varCategory[i],temp)
   }
   temp = mergeCategory("NFLAG_INSURED_ON_APPROVAL",temp)
   
+  # 处理 SELLERPLACE_AREA
   setSELLER = setdiff(unique(previous_application$SELLERPLACE_AREA),c(-1,0,50)) # the three most frequently shown area-code
   previous_application$SELLERPLACE_AREA[previous_application$SELLERPLACE_AREA %in% setSELLER] = "other"
   tempSELLER = previous_application[,.N,by = list(SK_ID_CURR, SELLERPLACE_AREA)]
   tempSELLERwide = dcast(tempSELLER, SK_ID_CURR ~ SELLERPLACE_AREA, fill = 0)
   names(tempSELLERwide) = c("SK_ID_CURR","SELLERPLACE_AREA_minus1", "SELLERPLACE_AREA_0","SELLERPLACE_AREA_50", "SELLERPLACE_AREA_other")
   temp = merge(temp, tempSELLERwide, all = TRUE, by = "SK_ID_CURR")
-  rm(tempSELLER,tempSELLERwide)
   
-  ## 以下variable(分别)大量且同步缺失
-  # 1. DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE_1ST_VERSION, DAYS_LAST_DUE, DAYS_TERMINATION
-  # 此6个变量与previous application相关, 缺失值多由于prev application撤销或被拒
-  temp$NA_DAYS_FIRST_LAST_MEAN = as.integer(is.na(temp$DAYS_FIRST_DRAWING_MEAN))
-  temp$DAYS_FIRST_DRAWING_MEAN[is.na(temp$DAYS_FIRST_DRAWING_MEAN)] = mean(temp$DAYS_FIRST_DRAWING_MEAN, na.rm =TRUE)
-  temp$DAYS_FIRST_DUE_MEAN[is.na(temp$DAYS_FIRST_DUE_MEAN)] = mean(temp$DAYS_FIRST_DUE_MEAN, na.rm =TRUE)
-  temp$DAYS_LAST_DUE_1ST_VERSION_MEAN[is.na(temp$DAYS_LAST_DUE_1ST_VERSION_MEAN)] = mean(temp$DAYS_LAST_DUE_1ST_VERSION_MEAN, na.rm =TRUE)
-  temp$DAYS_LAST_DUE_MEAN[is.na(temp$DAYS_LAST_DUE_MEAN)] = mean(temp$DAYS_LAST_DUE_MEAN, na.rm =TRUE)
-  temp$DAYS_TERMINATION_MEAN[is.na(temp$DAYS_TERMINATION_MEAN)] = mean(temp$DAYS_TERMINATION_MEAN, na.rm =TRUE)
-  
-  # 2.AMT_DOWN_PAYMENT, RATE_DOWN_PAYMENT (缺失多为Cash loans 或者 Revolving loans)
-  temp$NA_DOWN_PAYMENT_MEAN = as.integer(is.na(temp$AMT_DOWN_PAYMENT_MEAN))
-  temp$AMT_DOWN_PAYMENT_MEAN[is.na(temp$AMT_DOWN_PAYMENT_MEAN)] = mean(temp$AMT_DOWN_PAYMENT_MEAN, na.rm = TRUE)
-  temp$RATE_DOWN_PAYMENT_MEAN[is.na(temp$RATE_DOWN_PAYMENT_MEAN)] = mean(temp$RATE_DOWN_PAYMENT_MEAN, na.rm = TRUE)
-  
-  # 3. RATE_INTEREST_PRIMARY, RATE_INTEREST_PRIVILEGED
-  temp$NA_RATE_INTEREST_MEAN = as.integer(is.na(temp$RATE_INTEREST_PRIMARY_MEAN))
-  temp$RATE_INTEREST_PRIMARY_MEAN[is.na(temp$RATE_INTEREST_PRIMARY_MEAN)] = mean(temp$RATE_INTEREST_PRIMARY_MEAN, na.rm = TRUE)
-  temp$RATE_INTEREST_PRIVILEGED_MEAN[is.na(temp$RATE_INTEREST_PRIVILEGED_MEAN)] = mean(temp$RATE_INTEREST_PRIVILEGED_MEAN, na.rm = TRUE)
-  
+  if (version == 2){
+    ## 以下variable(分别)大量且同步缺失
+    # 1. DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE_1ST_VERSION, DAYS_LAST_DUE, DAYS_TERMINATION
+    # 此6个变量与previous application相关, 缺失值多由于prev application撤销或被拒
+    temp$NA_DAYS_FIRST_LAST_MEAN = as.integer(is.na(temp$DAYS_FIRST_DRAWING_MEAN))
+    temp$DAYS_FIRST_DRAWING_MEAN[is.na(temp$DAYS_FIRST_DRAWING_MEAN)] = mean(temp$DAYS_FIRST_DRAWING_MEAN, na.rm =TRUE)
+    temp$DAYS_FIRST_DUE_MEAN[is.na(temp$DAYS_FIRST_DUE_MEAN)] = mean(temp$DAYS_FIRST_DUE_MEAN, na.rm =TRUE)
+    temp$DAYS_LAST_DUE_1ST_VERSION_MEAN[is.na(temp$DAYS_LAST_DUE_1ST_VERSION_MEAN)] = mean(temp$DAYS_LAST_DUE_1ST_VERSION_MEAN, na.rm =TRUE)
+    temp$DAYS_LAST_DUE_MEAN[is.na(temp$DAYS_LAST_DUE_MEAN)] = mean(temp$DAYS_LAST_DUE_MEAN, na.rm =TRUE)
+    temp$DAYS_TERMINATION_MEAN[is.na(temp$DAYS_TERMINATION_MEAN)] = mean(temp$DAYS_TERMINATION_MEAN, na.rm =TRUE)
+    
+    # 2.AMT_DOWN_PAYMENT, RATE_DOWN_PAYMENT (缺失多为Cash loans 或者 Revolving loans)
+    temp$NA_DOWN_PAYMENT_MEAN = as.integer(is.na(temp$AMT_DOWN_PAYMENT_MEAN))
+    temp$AMT_DOWN_PAYMENT_MEAN[is.na(temp$AMT_DOWN_PAYMENT_MEAN)] = mean(temp$AMT_DOWN_PAYMENT_MEAN, na.rm = TRUE)
+    temp$RATE_DOWN_PAYMENT_MEAN[is.na(temp$RATE_DOWN_PAYMENT_MEAN)] = mean(temp$RATE_DOWN_PAYMENT_MEAN, na.rm = TRUE)
+    
+    # 3. RATE_INTEREST_PRIMARY, RATE_INTEREST_PRIVILEGED
+    temp$NA_RATE_INTEREST_MEAN = as.integer(is.na(temp$RATE_INTEREST_PRIMARY_MEAN))
+    temp$RATE_INTEREST_PRIMARY_MEAN[is.na(temp$RATE_INTEREST_PRIMARY_MEAN)] = mean(temp$RATE_INTEREST_PRIMARY_MEAN, na.rm = TRUE)
+    temp$RATE_INTEREST_PRIVILEGED_MEAN[is.na(temp$RATE_INTEREST_PRIVILEGED_MEAN)] = mean(temp$RATE_INTEREST_PRIVILEGED_MEAN, na.rm = TRUE)
+  }
+  names(temp) = make.names(names(temp))
   previous_application = temp
   return(previous_application)
 }
