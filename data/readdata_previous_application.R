@@ -122,8 +122,7 @@ readData = function(exploratory = 0,
   }
   
   ## NUMERIC aggregation
-  temp = previous_application[, .(CNT_PREV = .N,
-                                  AMT_ANNUITY_PREV_APP_MEAN = mean(AMT_ANNUITY, na.rm = TRUE),
+  temp = previous_application[, .(AMT_ANNUITY_PREV_APP_MEAN = mean(AMT_ANNUITY, na.rm = TRUE),
                                   AMT_APPLICATION_MEAN = mean(AMT_APPLICATION, na.rm = TRUE),
                                   AMT_CREDIT_MEAN = mean(AMT_CREDIT, na.rm = TRUE),
                                   AMT_DOWN_PAYMENT_MEAN = mean(AMT_DOWN_PAYMENT, na.rm = TRUE),
@@ -140,7 +139,7 @@ readData = function(exploratory = 0,
                                   DAYS_FIRST_DUE_MEAN = mean(DAYS_FIRST_DUE, na.rm = TRUE),
                                   DAYS_LAST_DUE_1ST_VERSION_MEAN = mean(DAYS_LAST_DUE_1ST_VERSION, na.rm = TRUE),
                                   DAYS_LAST_DUE_MEAN = mean(DAYS_LAST_DUE, na.rm = TRUE),
-                                  DAYS_TERMINATION_MEAN = mean(DAYS_TERMINATION, na.rm = TRUE)), by = SK_ID_CURR]  
+                                  DAYS_TERMINATION_MEAN = mean(DAYS_TERMINATION, na.rm = TRUE)), by = list(SK_ID_CURR,SK_ID_PREV)]  
   ## CATEGORY aggregation
   # re-categorize NAME_CASH_LOAN_PURPOSE and NAME_GOODS_CATEGORY
   previous_application$NAME_CASH_LOAN_PURPOSE[previous_application$NAME_CASH_LOAN_PURPOSE != "XAP" & previous_application$NAME_CASH_LOAN_PURPOSE != "XNA"] = "Other"
@@ -155,6 +154,23 @@ readData = function(exploratory = 0,
   # listXNA = names(previous_application)[numXNA > 0 & !is.na(numXNA)]
   previous_application[previous_application == "XNA"] = NA
   
+  mergeCategory <- function(var,temp){ # encode and merge categorical variables
+    eval(parse(text = file.path("temp2 = previous_application[,.N,by = list(SK_ID_CURR, SK_ID_PREV, ",
+                                var,
+                                ")]",fsep = "")))
+    eval(parse(text = file.path("temp2wide = dcast(temp2, SK_ID_CURR + SK_ID_PREV ~ ",
+                                var,
+                                ", fill = 0)", fsep = "")))
+    name_temp = c()
+    for (i in 3:length(names(temp2wide))){
+      tmp = gsub(" ","_", names(temp2wide)[i])
+      name_temp[i-2] = file.path(var,"_",tmp, fsep = "")
+    }
+    names(temp2wide) = c("SK_ID_CURR","SK_ID_PREV",name_temp)
+    temp = merge(temp, temp2wide, all = TRUE, by = c("SK_ID_CURR","SK_ID_PREV"))
+    return(temp)
+  }
+  
   for (i in 1:length(varCategory)){
     temp = mergeCategory(varCategory[i],temp)
   }
@@ -163,10 +179,59 @@ readData = function(exploratory = 0,
   # 处理 SELLERPLACE_AREA
   setSELLER = setdiff(unique(previous_application$SELLERPLACE_AREA),c(-1,0,50)) # the three most frequently shown area-code
   previous_application$SELLERPLACE_AREA[previous_application$SELLERPLACE_AREA %in% setSELLER] = "other"
-  tempSELLER = previous_application[,.N,by = list(SK_ID_CURR, SELLERPLACE_AREA)]
-  tempSELLERwide = dcast(tempSELLER, SK_ID_CURR ~ SELLERPLACE_AREA, fill = 0)
-  names(tempSELLERwide) = c("SK_ID_CURR","SELLERPLACE_AREA_minus1", "SELLERPLACE_AREA_0","SELLERPLACE_AREA_50", "SELLERPLACE_AREA_other")
-  temp = merge(temp, tempSELLERwide, all = TRUE, by = "SK_ID_CURR")
+  tempSELLER = previous_application[,.N,by = list(SK_ID_CURR, SK_ID_PREV,SELLERPLACE_AREA)]
+  tempSELLERwide = dcast(tempSELLER, SK_ID_CURR+SK_ID_PREV~ SELLERPLACE_AREA, fill = 0)
+  names(tempSELLERwide) = c("SK_ID_CURR","SK_ID_PREV","SELLERPLACE_AREA_minus1", "SELLERPLACE_AREA_0","SELLERPLACE_AREA_50", "SELLERPLACE_AREA_other")
+  temp = merge(temp, tempSELLERwide, all = TRUE, by = c("SK_ID_CURR","SK_ID_PREV"))
+  
+  if (version <= 2){
+    ## NUMERIC aggregation
+    temp = previous_application[, .(CNT_PREV = .N,
+                                    AMT_ANNUITY_PREV_APP_MEAN = mean(AMT_ANNUITY, na.rm = TRUE),
+                                    AMT_APPLICATION_MEAN = mean(AMT_APPLICATION, na.rm = TRUE),
+                                    AMT_CREDIT_MEAN = mean(AMT_CREDIT, na.rm = TRUE),
+                                    AMT_DOWN_PAYMENT_MEAN = mean(AMT_DOWN_PAYMENT, na.rm = TRUE),
+                                    AMT_GOODS_PRICE_MEAN = mean(AMT_GOODS_PRICE,na.rm = TRUE),
+                                    HOUR_APPR_PROCESS_START_MEAN = mean(HOUR_APPR_PROCESS_START, na.rm = TRUE),
+                                    FLAG_LAST_APPL_PER_CONTRACT_MIN = min(FLAG_LAST_APPL_PER_CONTRACT, na.rm = TRUE),
+                                    NFLAG_LAST_APPL_IN_DAY_MIN = min(NFLAG_LAST_APPL_IN_DAY,na.rm = TRUE),
+                                    RATE_DOWN_PAYMENT_MEAN = mean(RATE_DOWN_PAYMENT, na.rm = TRUE),
+                                    RATE_INTEREST_PRIMARY_MEAN = mean(RATE_INTEREST_PRIMARY, na.rm = TRUE),
+                                    RATE_INTEREST_PRIVILEGED_MEAN = mean(RATE_INTEREST_PRIVILEGED, na.rm = TRUE),
+                                    DAYS_DECISION_MEAN= mean(DAYS_DECISION, na.rm = TRUE),
+                                    CNT_PAYMENT = mean(CNT_PAYMENT, na.rm = TRUE),
+                                    DAYS_FIRST_DRAWING_MEAN = mean(DAYS_FIRST_DRAWING, na.rm = TRUE),
+                                    DAYS_FIRST_DUE_MEAN = mean(DAYS_FIRST_DUE, na.rm = TRUE),
+                                    DAYS_LAST_DUE_1ST_VERSION_MEAN = mean(DAYS_LAST_DUE_1ST_VERSION, na.rm = TRUE),
+                                    DAYS_LAST_DUE_MEAN = mean(DAYS_LAST_DUE, na.rm = TRUE),
+                                    DAYS_TERMINATION_MEAN = mean(DAYS_TERMINATION, na.rm = TRUE)), by = SK_ID_CURR]  
+    ## CATEGORY aggregation
+    # re-categorize NAME_CASH_LOAN_PURPOSE and NAME_GOODS_CATEGORY
+    previous_application$NAME_CASH_LOAN_PURPOSE[previous_application$NAME_CASH_LOAN_PURPOSE != "XAP" & previous_application$NAME_CASH_LOAN_PURPOSE != "XNA"] = "Other"
+    previous_application$NAME_GOODS_CATEGORY[previous_application$NAME_GOODS_CATEGORY != "XNA" &
+                                               previous_application$NAME_GOODS_CATEGORY != "Mobile" &
+                                               previous_application$NAME_GOODS_CATEGORY != "Consumer Electronics" &
+                                               previous_application$NAME_GOODS_CATEGORY != "Audio/Video" & 
+                                               previous_application$NAME_GOODS_CATEGORY != "Furniture" &
+                                               previous_application$NAME_GOODS_CATEGORY != "Computers"] = "Other"
+    # replace XNA with NA
+    # numXNA = sapply(previous_application, function(x) sum(x == "XNA"))
+    # listXNA = names(previous_application)[numXNA > 0 & !is.na(numXNA)]
+    previous_application[previous_application == "XNA"] = NA
+    
+    for (i in 1:length(varCategory)){
+      temp = mergeCategory(varCategory[i],temp)
+    }
+    temp = mergeCategory("NFLAG_INSURED_ON_APPROVAL",temp)
+    
+    # 处理 SELLERPLACE_AREA
+    setSELLER = setdiff(unique(previous_application$SELLERPLACE_AREA),c(-1,0,50)) # the three most frequently shown area-code
+    previous_application$SELLERPLACE_AREA[previous_application$SELLERPLACE_AREA %in% setSELLER] = "other"
+    tempSELLER = previous_application[,.N,by = list(SK_ID_CURR, SELLERPLACE_AREA)]
+    tempSELLERwide = dcast(tempSELLER, SK_ID_CURR ~ SELLERPLACE_AREA, fill = 0)
+    names(tempSELLERwide) = c("SK_ID_CURR","SELLERPLACE_AREA_minus1", "SELLERPLACE_AREA_0","SELLERPLACE_AREA_50", "SELLERPLACE_AREA_other")
+    temp = merge(temp, tempSELLERwide, all = TRUE, by = "SK_ID_CURR")
+  }
   
   if (version == 2){
     ## 以下variable(分别)大量且同步缺失
