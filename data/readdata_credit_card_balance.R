@@ -77,7 +77,7 @@ readData = function(exploratory = 0,
   tempCONTRACTwide = dcast(tempCONTRACT, SK_ID_CURR + SK_ID_PREV~ NAME_CONTRACT_STATUS, fill = 0)
   names(tempCONTRACTwide) = c("SK_ID_CURR","SK_ID_PREV","NAME_CONTRACT_STATUS_Active", "NAME_CONTRACT_STATUS_Completed","NAME_CONTRACT_STATUS_Other")
   temp = merge(temp, tempCONTRACTwide, all = TRUE, by = c("SK_ID_CURR","SK_ID_PREV"))
-  credit_card_balance = temp
+  #credit_card_balance = temp
   
   if (version <=2){
     temp = credit_card_balance[,.(N_MONTH = .N,
