@@ -8,7 +8,6 @@ readData = function(version) {
   library(rprojroot)
   library(data.table)
   library(mlr)
-  requireNamespace("lubridate")
   root = find_root(is_git_root)
   setwd(root)
   
@@ -188,16 +187,17 @@ readData = function(version) {
                            DAYS_CREDIT_ENDDATE_MIN = min(DAYS_CREDIT_ENDDATE, na.rm = TRUE)), 
                         by = SK_ID_CURR] 
     tmp5$DAYS_CREDIT_ENDDATE_MAX[is.infinite(tmp5$DAYS_CREDIT_ENDDATE_MAX)] = NA
-    tmp5$DAYS_CREDIT_ENDDATE_MAX[is.infinite(tmp5$DAYS_CREDIT_ENDDATE_MIN)] = NA
+    tmp5$DAYS_CREDIT_ENDDATE_MIN[is.infinite(tmp5$DAYS_CREDIT_ENDDATE_MIN)] = NA
     
     # 6. DAYS_ENDDATE_FACT  # only for closed
     tmp6 = bureauMerged[,.(DAYS_ENDDATE_FACT_MAX = max(DAYS_ENDDATE_FACT, na.rm = TRUE), 
                            DAYS_ENDDATE_FACT_MIN = min(DAYS_ENDDATE_FACT, na.rm = TRUE)), 
                         by = SK_ID_CURR] 
+    # non-closed credit does not have DAYS_ENDDATE_FACT by construction
     tmp6$DAYS_ENDDATE_FACT_MAX[is.infinite(tmp6$DAYS_ENDDATE_FACT_MAX)] = NA
     tmp6$DAYS_ENDDATE_FACT_MIN[is.infinite(tmp6$DAYS_ENDDATE_FACT_MIN)] = NA
     
-    # 7. AMT_CREDIT_MAX_OVERDUE    或者：可以把NA填补为0
+    # 7. AMT_CREDIT_MAX_OVERDUE    或者：可以把NA填补为0 (同意)
     tmp7 = bureauMerged[,.(AMT_CREDIT_MAX_OVERDUE_MAX = max(AMT_CREDIT_MAX_OVERDUE, na.rm = TRUE), 
                            AMT_CREDIT_MAX_OVERDUE_MIN = min(AMT_CREDIT_MAX_OVERDUE, na.rm = TRUE)), 
                         by = SK_ID_CURR] 
@@ -209,13 +209,13 @@ readData = function(version) {
                            CNT_CREDIT_PROLONG_MIN = min(CNT_CREDIT_PROLONG, na.rm = TRUE)), 
                         by = SK_ID_CURR] 
 
-    # 9. AMT_CREDIT_SUM # 个人认为这个求和就可以
+    # 9. AMT_CREDIT_SUM # 个人认为这个求和就可以 (个人认为用mean或者max)
     tmp9 = bureauMerged[,.(AMT_CREDIT_SUM = sum(AMT_CREDIT_SUM, na.rm = TRUE)), by = SK_ID_CURR]
     
-    # 10. AMT_CREDIT_SUM_DEBT
+    # 10. AMT_CREDIT_SUM_DEBT (个人认为用mean或者max)
     tmp10 = bureauMerged[,.(AMT_CREDIT_SUM_DEBT = sum(AMT_CREDIT_SUM_DEBT, na.rm = TRUE)), by = SK_ID_CURR]
     
-    # 11. AMT_CREDIT_SUM_LIMIT # 或者用min代替max?
+    # 11. AMT_CREDIT_SUM_LIMIT # 或者用min代替max? (个人认为此处为credit card limit, 个人认为用max)
     tmp11 = bureauMerged[,.(AMT_CREDIT_SUM_LIMIT = max(AMT_CREDIT_SUM_LIMIT, na.rm = TRUE)), by = SK_ID_CURR]
     tmp11$AMT_CREDIT_SUM_LIMIT[is.infinite(tmp11$AMT_CREDIT_SUM_LIMIT)] = NA
     
@@ -249,7 +249,7 @@ readData = function(version) {
     tmp14 = bureauMerged[,.(DAYS_CREDIT_UPDATE = max(DAYS_CREDIT_UPDATE, na.rm = TRUE)), by = SK_ID_CURR]
     
     # 15. AMT_ANNUITY #不知道年金是什么，暂时求和吧
-    tmp15 = bureauMerged[,.(AMT_ANNUITY = sum(AMT_ANNUITY, na.rm = TRUE)), by = SK_ID_CURR]
+    tmp15 = bureauMerged[,.(AMT_ANNUITY_BUREAU = sum(AMT_ANNUITY, na.rm = TRUE)), by = SK_ID_CURR] # application总表有变量名为AMT_ANNUITY
     
     # 16. bureau_balance #都求和吧
     tmp16 = bureauMerged[,.(BUREAU_STATUS_0 = sum(BUREAU_STATUS_0, na.rm = TRUE),
@@ -284,6 +284,8 @@ readData = function(version) {
     
     
     application = merge(application, TMP, all.x = TRUE, by = "SK_ID_CURR")
+    source(file.path(root, "data", "imputeNAs_bureau.R"))
+    application = imputeNA(application,method = "mixed")
   }
 
   
@@ -293,21 +295,28 @@ readData = function(version) {
   if(version >= 3){
     source(file.path(root, "data", "readdata_credit_card_balance.R"))
     credit_card_balance = readData()
+    application = merge(application, credit_card_balance, all.x = TRUE, by = "SK_ID_CURR")
+    source(file.path(root, "data", "imputeNAs_credit_card_balance.R"))
+    application = imputeNA(application)
+    
     source(file.path(root, "data", "readdata_installments_payments.R"))
     installments_payments = readData()
-    merged_1 = merge(credit_card_balance, installments_payments, all.x = TRUE, by = "SK_ID_PREV")
-    
+    application = merge(application, installments_payments, all.x = TRUE, by = "SK_ID_CURR")
+    source(file.path(root, "data", "imputeNAs_installments_payments.R"))
+    application = imputeNA(application)
     
     source(file.path(root, "data", "readdata_POS_CASH_balance.R"))
     POS_CASH_balance = readData()
-    merged_2 = merge(POS_CASH_balance, merged_1, all.x = TRUE, by = "SK_ID_PREV")
+    application = merge(application, POS_CASH_balance, all.x = TRUE, by = "SK_ID_CURR")
+    source(file.path(root, "data", "imputeNAs_POS_CASH_balance.R"))
+    application = imputeNA(application)
     
     source(file.path(root, "data", "readdata_previous_application.R"))
     previous_application = readData()
+    application = merge(application, previous_application, all.x = TRUE, by = "SK_ID_CURR")
+    source(file.path(root, "data", "imputeNAs_previous_application.R"))
+    application = imputeNA(application)
     
-    merged_3 = merge(previous_application, merged_2, all.x = TRUE, by = "SK_ID_PREV")
-    
-    application = merge(application, merged_3, all.x = TRUE, by = "SK_ID_CURR")
   }
   
   return(application)
