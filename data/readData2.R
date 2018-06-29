@@ -88,6 +88,10 @@ readData = function(version) {
     missValue = sapply(application, function(x) sum(is.na(x))) # too many missing value
     missValue = missValue[missValue >0]
     missValue = sort(missValue)
+    
+    #pdf(file.path(root,"plots", "missValueNumeric.pdf"))
+    #barplot(missValue, las = 2)
+    #dev.off()
     missVar = names(missValue)
     # barplot(missValue,las = 2,cex.lab=0.2)
     
