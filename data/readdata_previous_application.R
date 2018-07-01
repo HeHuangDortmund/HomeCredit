@@ -8,7 +8,6 @@ readData = function(exploratory = 0,
   # THINGS TO DO:
   # 1. outlier以及NA的处理: DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE_1ST_VERSION, DAYS_LAST_DUE, DAYS_TERMINATION, NFLAG_INSURED_ON_APPROVAL
   # 2. 变量 SELLERPLACE_AREA 的处理 
-  # 3. XNA & XAP?
   ########################################################################################
   #### Define some functions
   makeplot <- function(var, type){
@@ -53,7 +52,7 @@ readData = function(exploratory = 0,
                                 ")]",fsep = "")))
     eval(parse(text = file.path("temp2wide = dcast(temp2, SK_ID_CURR ~ ",
                                 var,
-                                ", fill = 0)", fsep = "")))
+                                ", fill = 0, value.var = \"N\")", fsep = "")))
     name_temp = c()
     for (i in 2:length(names(temp2wide))){
       tmp = gsub(" ","_", names(temp2wide)[i])
@@ -74,6 +73,16 @@ readData = function(exploratory = 0,
     sapply(varCategory, makeplot, "barplot")
     sapply(varNumeric, makeplot, "density")
   }
+  
+  # Replace XNA,XAP,365243
+  previous_application[previous_application == "XNA"] = "miss"
+  previous_application[previous_application == "XAP"] = "miss"
+  previous_application$DAYS_TERMINATION[previous_application$DAYS_TERMINATION == 365243] = NA
+  previous_application$DAYS_LAST_DUE[previous_application$DAYS_LAST_DUE == 365243] = NA
+  previous_application$DAYS_LAST_DUE_1ST_VERSION[previous_application$DAYS_LAST_DUE_1ST_VERSION == 365243] = NA
+  previous_application$DAYS_FIRST_DUE[previous_application$DAYS_FIRST_DUE == 365243] = NA
+  previous_application$DAYS_FIRST_DRAWING[previous_application$DAYS_FIRST_DRAWING == 365243] = NA
+  
   
   if (version == 2){
     ## first fill NAs
@@ -142,17 +151,14 @@ readData = function(exploratory = 0,
   # 2. NAME_TYPE_SUITE (820405 missing values)
   previous_application$NAME_TYPE_SUITE[is.na(previous_application$NAME_TYPE_SUITE)] = "miss"
   # re-categorize NAME_CASH_LOAN_PURPOSE and NAME_GOODS_CATEGORY
-  previous_application$NAME_CASH_LOAN_PURPOSE[previous_application$NAME_CASH_LOAN_PURPOSE != "XAP" & previous_application$NAME_CASH_LOAN_PURPOSE != "XNA"] = "Other"
-  previous_application$NAME_GOODS_CATEGORY[previous_application$NAME_GOODS_CATEGORY != "XNA" &
+  previous_application$NAME_CASH_LOAN_PURPOSE[previous_application$NAME_CASH_LOAN_PURPOSE != "miss"] = "Other"
+  previous_application$NAME_GOODS_CATEGORY[previous_application$NAME_GOODS_CATEGORY != "miss" &
                                              previous_application$NAME_GOODS_CATEGORY != "Mobile" &
                                              previous_application$NAME_GOODS_CATEGORY != "Consumer Electronics" &
                                              previous_application$NAME_GOODS_CATEGORY != "Audio/Video" & 
                                              previous_application$NAME_GOODS_CATEGORY != "Furniture" &
                                              previous_application$NAME_GOODS_CATEGORY != "Computers"] = "Other"
-  # replace XNA with NA
-  # numXNA = sapply(previous_application, function(x) sum(x == "XNA"))
-  # listXNA = names(previous_application)[numXNA > 0 & !is.na(numXNA)]
-  previous_application[previous_application == "XNA"] = "miss"
+
   
   for (i in 1:length(varCategory)){
     temp = mergeCategory(varCategory[i],temp)
