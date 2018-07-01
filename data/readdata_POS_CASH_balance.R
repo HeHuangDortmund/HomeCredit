@@ -3,9 +3,7 @@ readData = function(version = 1){
   library(data.table)
   root = find_root(is_git_root)
   setwd(root)
-  ####
-  # Problem: XNA
-  ####
+
   POS_CASH_balance = fread("../data/POS_CASH_balance.csv", na.strings = "")
   if (version == 2){
     POS_CASH_balance$CNT_INSTALMENT[is.na(POS_CASH_balance$CNT_INSTALMENT)] = mean(POS_CASH_balance$CNT_INSTALMENT, na.rm = TRUE)
