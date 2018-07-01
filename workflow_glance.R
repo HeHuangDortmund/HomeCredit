@@ -5,6 +5,14 @@ requireNamespace("withr")
 root = find_root(is_git_root)
 set.seed(1)
 
+# TODO
+#0. ISNA_indicator 是否高度相关
+#1. category变量与TARGET的关联, 然后re-categorize
+#2. 手动删除NA太多的变量
+#3. 手动删除意义上重复变量, 如MEDI,AVG
+#4. 特征选择: randomforest和mlr
+#5. 建模: logistic, NN(与ROC等价的loss function), xgboost
+
 # read data
 source(file.path(root,"data", "readData2.R"))
 data = readData(version = 2) # version = 3 还未完成
