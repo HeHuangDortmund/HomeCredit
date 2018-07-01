@@ -35,26 +35,15 @@ readData = function(exploratory = 0,
   
   installments_payments[, INSTALMENTS_DPD := DAYS_ENTRY_PAYMENT - DAYS_INSTALMENT] # 逾期天数 >0 代表逾期
   installments_payments[, INSTALMENTS_LESS := AMT_PAYMENT - AMT_INSTALMENT]        # 少还金额 <0 代表少还了
-  
-  if (version == 3){
-    temp  = installments_payments[,.(NUM_INSTALMENT_VERSION_MEAN = mean(NUM_INSTALMENT_VERSION),
-                                      NUM_INSTALMENT_NUMBER_MEAN = mean(NUM_INSTALMENT_NUMBER),
-                                      DAYS_INSTALMENT_MEAN = mean(DAYS_INSTALMENT),
-                                      DAYS_ENTRY_PAYMENT_MEAN = mean(DAYS_ENTRY_PAYMENT, na.rm = TRUE),
-                                      AMT_INSTALMENT_MEAN = mean(AMT_INSTALMENT),
-                                      AMT_PAYMENT_MEAN = mean(AMT_PAYMENT, na.rm = TRUE),
-                                      INSTALMENTS_DPD_MEAN = mean(INSTALMENTS_DPD, na.rm = TRUE),
-                                      INSTALMENTS_LESS_MEAN = mean(INSTALMENTS_LESS, na.rm=TRUE)), by = list(SK_ID_CURR,SK_ID_PREV)]
-  } else {
-    temp  = installments_payments[,.(NUM_INSTALMENT_VERSION_MEAN = mean(NUM_INSTALMENT_VERSION),
-                                     NUM_INSTALMENT_NUMBER_MEAN = mean(NUM_INSTALMENT_NUMBER),
-                                     DAYS_INSTALMENT_MEAN = mean(DAYS_INSTALMENT),
-                                     DAYS_ENTRY_PAYMENT_MEAN = mean(DAYS_ENTRY_PAYMENT, na.rm = TRUE),
-                                     AMT_INSTALMENT_MEAN = mean(AMT_INSTALMENT),
-                                     AMT_PAYMENT_MEAN = mean(AMT_PAYMENT, na.rm = TRUE),
-                                     INSTALMENTS_DPD_MEAN = mean(INSTALMENTS_DPD, na.rm = TRUE),
-                                     INSTALMENTS_LESS_MEAN = mean(INSTALMENTS_LESS, na.rm=TRUE)), by = SK_ID_CURR]
-  }
+
+  temp  = installments_payments[,.(NUM_INSTALMENT_VERSION_MEAN = mean(NUM_INSTALMENT_VERSION),
+                                   NUM_INSTALMENT_NUMBER_MEAN = mean(NUM_INSTALMENT_NUMBER),
+                                   DAYS_INSTALMENT_MEAN = mean(DAYS_INSTALMENT),
+                                   DAYS_ENTRY_PAYMENT_MEAN = mean(DAYS_ENTRY_PAYMENT, na.rm = TRUE),
+                                   AMT_INSTALMENT_MEAN = mean(AMT_INSTALMENT),
+                                   AMT_PAYMENT_MEAN = mean(AMT_PAYMENT, na.rm = TRUE),
+                                   INSTALMENTS_DPD_MEAN = mean(INSTALMENTS_DPD, na.rm = TRUE),
+                                   INSTALMENTS_LESS_MEAN = mean(INSTALMENTS_LESS, na.rm=TRUE)), by = SK_ID_CURR]
   
   temp$DAYS_ENTRY_PAYMENT_MEAN[is.nan(temp$DAYS_ENTRY_PAYMENT_MEAN)] = NA
   temp$AMT_PAYMENT_MEAN[is.nan(temp$AMT_PAYMENT_MEAN)] = NA
@@ -68,5 +57,3 @@ readData = function(exploratory = 0,
   installments_payments = temp
   return(installments_payments)
 }
-
-

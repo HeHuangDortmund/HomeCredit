@@ -292,50 +292,7 @@ readData = function(version) {
   ##############################################################################
   #III. credit_card_balance installments_payments  POS_CASH_balance  previous_application
   ##############################################################################
-  if (version == 3){
-    # credit card balance信息太少
-    # source(file.path(root, "data", "readdata_credit_card_balance.R"))
-    # credit_card_balance = readData(version = 3)
-    
-    source(file.path(root, "data", "readdata_installments_payments.R"))
-    installments_payments = readData(version = 3)
-    
-    source(file.path(root, "data", "readdata_POS_CASH_balance.R"))
-    POS_CASH_balance = readData(version = 3)
-    merged = merge(installments_payments, POS_CASH_balance, all = TRUE, by = c("SK_ID_CURR","SK_ID_PREV"))
-    
-    source(file.path(root, "data", "readdata_previous_application.R"))
-    previous_application = readData(version = 3)
-    merged = merge(previous_application, merged, all = TRUE, by = c("SK_ID_CURR","SK_ID_PREV"))
-    
-    name_list = sapply(merged,class)
-    name_numeric = names(merged)[name_list == "numeric"]
-    name_integer = names(merged)[name_list == "integer"]
-    name_numeric = c(name_integer[1],name_numeric)
-    name_integer = name_integer[-2]
-    
-    temp_numeric = merged[, .SD, .SDcols = name_numeric]
-    temp_integer = merged[, .SD, .SDcols = name_integer]
-    
-    temp_numeric = temp_numeric[, lapply(.SD, mean, na.rm =TRUE), 
-                  by = SK_ID_CURR]
-    temp_integer = temp_integer[, lapply(.SD, sum, na.rm =TRUE), 
-                        by = SK_ID_CURR]
-    temp = merge(temp_numeric,temp_integer,all = TRUE, by = "SK_ID_CURR")
-    
-    application = merge(application, temp, all.x = TRUE, by = "SK_ID_CURR")
-    application$NA_indicator = as.integer(is.na(application$NFLAG_LAST_APPL_IN_DAY_MIN))
-    application$NA_DOWN_PAYMENT = as.integer(is.na(application$AMT_DOWN_PAYMENT_MEAN))
-    application$NA_RATE_INTEREST = as.integer(is.na(application$RATE_INTEREST_PRIMARY_MEAN))
-    application = impute(as.data.frame(application), 
-                         target = "TARGET", 
-                         classes = list(numeric = imputeMean(),
-                                        integer = imputeMean()))$data
-    application = as.data.table(application)
-    
-  }
-  
-  if(version == 4){
+  if(version >= 3){
     source(file.path(root, "data", "readdata_credit_card_balance.R"))
     credit_card_balance = readData()
     application = merge(application, credit_card_balance, all.x = TRUE, by = "SK_ID_CURR")
