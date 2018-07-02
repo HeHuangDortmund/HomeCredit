@@ -129,15 +129,8 @@ readData = function(version) {
     application$NA_DAYS_EMPLOYED = as.integer(is.na(application$DAYS_EMPLOYED))
     
     application = impute(application, classes = list(numeric = imputeMean()))$data
-    
-    # correlation between ISNA variables
-    matrix.cor = cor(application[names(application)[grep("NA_",names(application))]])
-    pdf("corr_ISNA_application.pdf",width = 14, height = 14)
-    corrplot(a, type= "lower", method = "number", number.font = 5)
-    dev.off()
-    ## 以下两类变量相互corr较高 (>90%)
-    # 1. NA_YEARS_BEGINEXPLUATATION, NA_FLOORSAREA, NA_ENTRANCES, NA_APARTMENT, NA_ELEVATORS, NA_NONLIVINGAREA, NA_TOTALAREA_MODE
-    # 2. NA_YEARS_BUILD, NA_FLOORSMIN, NA_LIVINGAPARTMENTS, NA_NONLIVINGAPARTMENTS
+    application = impute(application, cols = list(DAYS_EMPLOYED = imputeMean()))$data
+
     application = as.data.table(application)
   }
   
@@ -180,6 +173,17 @@ readData = function(version) {
     source(file.path(root, "data", "imputeNAs_previous_application.R"))
     application = imputeNA(application)
   }
+  # check the correlations between ISNA variables
+  matrix.cor = cor(application[,.SD,.SDcols = names(application)[grep("NA_",names(application))]])
+  pdf("corr_ISNA_variable.pdf",width = 14, height = 14)
+  corrplot(matrix.cor, type= "lower", method = "number", number.font = 5)
+  dev.off()
+  ## 以下几类变量相互corr较高 (>=0.9)
+  # 1. NA_YEARS_BEGINEXPLUATATION, NA_FLOORSMAX, NA_ENTRANCES, NA_APARTMENT, NA_ELEVATORS, NA_NONLIVINGAREA, NA_TOTALAREA_MODE
+  # 2. NA_LANDAREA, NA_LIVINGAREA
+  # 3. NA_YEARS_BUILD, NA_FLOORSMIN, NA_LIVINGAPARTMENTS, NA_NONLIVINGAPARTMENTS, NA_COMMONAREA
+  # 4. NA_DAYS_CREDIT_ENDDATE, NA_BUREAU, NA_AMT_REQ
+  # 5. NA_INSTALLMENT_PAYMENT, NA_POS_CASH, NA_PREV_APPLICATION, NA_DAYS_FIRST_DRAWING_MEAN, NA_AMT_DRAWINGS_MEAN
   
   return(application)
 }
