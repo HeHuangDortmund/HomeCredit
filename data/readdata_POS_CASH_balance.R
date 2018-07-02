@@ -19,7 +19,7 @@ readData = function(version = 1){
   POS_CASH_balance$NAME_CONTRACT_STATUS[POS_CASH_balance$NAME_CONTRACT_STATUS == "Canceled" | 
                                           POS_CASH_balance$NAME_CONTRACT_STATUS == "XNA"] = "Other"
   temp2 = POS_CASH_balance[,.N,by = list(SK_ID_CURR, NAME_CONTRACT_STATUS)]
-  temp2wide = dcast(temp2, SK_ID_CURR~NAME_CONTRACT_STATUS, fill = 0)
+  temp2wide = dcast(temp2, SK_ID_CURR~NAME_CONTRACT_STATUS, fill = 0, value.var = "N")
   names(temp2wide) = c("SK_ID_CURR", 
                        "NAME_CONTRACT_STATUS_POSCASH_MONTH_Active",
                        "NAME_CONTRACT_STATUS_POSCASH_MONTH_Amortized",

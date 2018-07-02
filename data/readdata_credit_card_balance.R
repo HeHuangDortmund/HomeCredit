@@ -74,7 +74,7 @@ readData = function(exploratory = 0,
   
   credit_card_balance$NAME_CONTRACT_STATUS[credit_card_balance$NAME_CONTRACT_STATUS != "Active" & credit_card_balance$NAME_CONTRACT_STATUS != "Completed"] = "Other"
   tempCONTRACT = credit_card_balance[,.N,by = list(SK_ID_CURR, NAME_CONTRACT_STATUS)]
-  tempCONTRACTwide = dcast(tempCONTRACT, SK_ID_CURR ~ NAME_CONTRACT_STATUS, fill = 0)
+  tempCONTRACTwide = dcast(tempCONTRACT, SK_ID_CURR ~ NAME_CONTRACT_STATUS, fill = 0, value.var = "N")
   names(tempCONTRACTwide) = c("SK_ID_CURR","NAME_CONTRACT_STATUS_Active", "NAME_CONTRACT_STATUS_Completed","NAME_CONTRACT_STATUS_Other")
   temp = merge(temp, tempCONTRACTwide, all = TRUE, by = "SK_ID_CURR")
   
