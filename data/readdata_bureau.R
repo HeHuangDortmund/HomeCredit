@@ -1,5 +1,5 @@
 
-readData = function(){
+readData = function(version = 1){
   library(rprojroot)
   library(data.table)
   root = find_root(is_git_root)
@@ -64,6 +64,13 @@ readData = function(){
                       by = SK_ID_CURR] 
   
   # 5. DAYS_CREDIT_ENDDATE
+  if (version == 2){
+    # fill NA with mean (with respect to each CREDIT_ACTIVE status)
+    bureauMerged$DAYS_CREDIT_ENDDATE[is.na(bureauMerged$DAYS_CREDIT_ENDDATE) & bureauMerged$CREDIT_ACTIVE == "Active"] = bureauMerged[CREDIT_ACTIVE == "Active", .(mu = mean(DAYS_CREDIT_ENDDATE, na.rm = TRUE))]$mu
+    bureauMerged$DAYS_CREDIT_ENDDATE[is.na(bureauMerged$DAYS_CREDIT_ENDDATE) & bureauMerged$CREDIT_ACTIVE == "Bad debt"] = bureauMerged[CREDIT_ACTIVE == "Bad debt", .(mu = mean(DAYS_CREDIT_ENDDATE, na.rm = TRUE))]$mu
+    bureauMerged$DAYS_CREDIT_ENDDATE[is.na(bureauMerged$DAYS_CREDIT_ENDDATE) & bureauMerged$CREDIT_ACTIVE == "Closed"] = bureauMerged[CREDIT_ACTIVE == "Closed", .(mu = mean(DAYS_CREDIT_ENDDATE, na.rm = TRUE))]$mu
+    bureauMerged$DAYS_CREDIT_ENDDATE[is.na(bureauMerged$DAYS_CREDIT_ENDDATE) & bureauMerged$CREDIT_ACTIVE == "Sold"] = bureauMerged[CREDIT_ACTIVE == "Sold", .(mu = mean(DAYS_CREDIT_ENDDATE, na.rm = TRUE))]$mu
+  }
   tmp5 = bureauMerged[,.(DAYS_CREDIT_ENDDATE_MAX = max(DAYS_CREDIT_ENDDATE, na.rm = TRUE), 
                          DAYS_CREDIT_ENDDATE_MIN = min(DAYS_CREDIT_ENDDATE, na.rm = TRUE)), 
                       by = SK_ID_CURR] 
@@ -71,6 +78,12 @@ readData = function(){
   tmp5$DAYS_CREDIT_ENDDATE_MIN[is.infinite(tmp5$DAYS_CREDIT_ENDDATE_MIN)] = NA
   
   # 6. DAYS_ENDDATE_FACT  # only for closed
+  ## Problem: DAYS_ENDDATE_FACT only for Closed Credit, but found 3627 entries with DAYS_ENDDATE_FACT and credit is not closed
+  # bureauMerged[CREDIT_ACTIVE != "Closed" & !is.na(DAYS_ENDDATE_FACT),.N]
+  if (version == 2){
+    #fill NA with mean of DAYS_ENDDATE_FACT (closed entries) 
+    bureauMerged$DAYS_ENDDATE_FACT[is.na(bureauMerged$DAYS_ENDDATE_FACT) & bureauMerged$CREDIT_ACTIVE == "Closed"] = bureauMerged[CREDIT_ACTIVE == "Closed", .(mu = mean(DAYS_ENDDATE_FACT, na.rm = TRUE))]$mu
+  }
   tmp6 = bureauMerged[,.(DAYS_ENDDATE_FACT_MAX = max(DAYS_ENDDATE_FACT, na.rm = TRUE), 
                          DAYS_ENDDATE_FACT_MIN = min(DAYS_ENDDATE_FACT, na.rm = TRUE)), 
                       by = SK_ID_CURR] 
@@ -79,6 +92,9 @@ readData = function(){
   tmp6$DAYS_ENDDATE_FACT_MIN[is.infinite(tmp6$DAYS_ENDDATE_FACT_MIN)] = NA
   
   # 7. AMT_CREDIT_MAX_OVERDUE    或者：可以把NA填补为0 (同意)
+  if (version == 2){
+    bureauMerged$AMT_CREDIT_MAX_OVERDUE[is.na(bureauMerged$AMT_CREDIT_MAX_OVERDUE)] = 0
+  }
   tmp7 = bureauMerged[,.(AMT_CREDIT_MAX_OVERDUE_MAX = max(AMT_CREDIT_MAX_OVERDUE, na.rm = TRUE), 
                          AMT_CREDIT_MAX_OVERDUE_MIN = min(AMT_CREDIT_MAX_OVERDUE, na.rm = TRUE)), 
                       by = SK_ID_CURR] 
@@ -99,7 +115,9 @@ readData = function(){
   # 11. AMT_CREDIT_SUM_LIMIT # 或者用min代替max? (个人认为此处为credit card limit, 个人认为用max)
   tmp11 = bureauMerged[,.(AMT_CREDIT_SUM_LIMIT = max(AMT_CREDIT_SUM_LIMIT, na.rm = TRUE)), by = SK_ID_CURR]
   tmp11$AMT_CREDIT_SUM_LIMIT[is.infinite(tmp11$AMT_CREDIT_SUM_LIMIT)] = NA
-  
+  if (version == 2){
+    tmp11$AMT_CREDIT_SUM_LIMIT[is.infinite(tmp11$AMT_CREDIT_SUM_LIMIT)] = 0
+  }
   # 12. AMT_CREDIT_SUM_OVERDUE
   tmp12 = bureauMerged[,.(AMT_CREDIT_SUM_OVERDUE = sum(AMT_CREDIT_SUM_OVERDUE, na.rm = TRUE)), by = SK_ID_CURR]
   
