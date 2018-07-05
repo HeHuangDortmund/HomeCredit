@@ -1,13 +1,15 @@
 readData = function(exploratory = 0,
-                    version = 1){
+                    version = 1,
+                    category = "FeatureHashing"){
   library(rprojroot)
   library(data.table)
+  library(FeatureHashing)
+  library(plyr)
   root = find_root(is_git_root)
   setwd(root)
   ########################################################################################
-  # THINGS TO DO:
+  # TODO
   # 1. outlier以及NA的处理: DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE_1ST_VERSION, DAYS_LAST_DUE, DAYS_TERMINATION, NFLAG_INSURED_ON_APPROVAL
-  # 2. 变量 SELLERPLACE_AREA 的处理 
   ########################################################################################
   #### Define some functions
   makeplot <- function(var, type){
@@ -53,18 +55,15 @@ readData = function(exploratory = 0,
     eval(parse(text = file.path("temp2wide = dcast(temp2, SK_ID_CURR ~ ",
                                 var,
                                 ", fill = 0, value.var = \"N\")", fsep = "")))
-    name_temp = c()
-    for (i in 2:length(names(temp2wide))){
-      tmp = gsub(" ","_", names(temp2wide)[i])
-      name_temp[i-1] = file.path(var,"_",tmp, fsep = "")
-    }
-    names(temp2wide) = c("SK_ID_CURR",name_temp)
+    names(temp2wide) = gsub(" ","_", names(temp2wide))
+    names(temp2wide) = c("SK_ID_CURR",paste(var,names(temp2wide),sep = "_")[-1])
     temp = merge(temp, temp2wide, all = TRUE, by = "SK_ID_CURR")
     return(temp)
   }
   
   previous_application = fread("../data/previous_application.csv", na.strings = "")
   previous_application$FLAG_LAST_APPL_PER_CONTRACT = as.integer(as.factor(previous_application$FLAG_LAST_APPL_PER_CONTRACT))-1
+  previous_application$SELLERPLACE_AREA = as.character(previous_application$SELLERPLACE_AREA)
   # barplot(sort(sapply(previous_application, function(x) sum(is.na(x)))),las = 2)
   varCategory = names(previous_application)[sapply(previous_application, function(x) is.character(x))]
   varNumeric = setdiff(names(previous_application),varCategory)
@@ -82,7 +81,6 @@ readData = function(exploratory = 0,
   previous_application$DAYS_LAST_DUE_1ST_VERSION[previous_application$DAYS_LAST_DUE_1ST_VERSION == 365243] = NA
   previous_application$DAYS_FIRST_DUE[previous_application$DAYS_FIRST_DUE == 365243] = NA
   previous_application$DAYS_FIRST_DRAWING[previous_application$DAYS_FIRST_DRAWING == 365243] = NA
-  
   
   if (version == 2){
     ## first fill NAs
@@ -150,28 +148,69 @@ readData = function(exploratory = 0,
   previous_application$PRODUCT_COMBINATION[is.na(previous_application$PRODUCT_COMBINATION)] = "miss"
   # 2. NAME_TYPE_SUITE (820405 missing values)
   previous_application$NAME_TYPE_SUITE[is.na(previous_application$NAME_TYPE_SUITE)] = "miss"
-  # re-categorize NAME_CASH_LOAN_PURPOSE and NAME_GOODS_CATEGORY
-  previous_application$NAME_CASH_LOAN_PURPOSE[previous_application$NAME_CASH_LOAN_PURPOSE != "miss"] = "Other"
-  previous_application$NAME_GOODS_CATEGORY[previous_application$NAME_GOODS_CATEGORY != "miss" &
-                                             previous_application$NAME_GOODS_CATEGORY != "Mobile" &
-                                             previous_application$NAME_GOODS_CATEGORY != "Consumer Electronics" &
-                                             previous_application$NAME_GOODS_CATEGORY != "Audio/Video" & 
-                                             previous_application$NAME_GOODS_CATEGORY != "Furniture" &
-                                             previous_application$NAME_GOODS_CATEGORY != "Computers"] = "Other"
-
   
+  if (category == "redefine"){ # 针对category数量较多(>20), 如NAME_CASH_LOAN_PURPOSE, NAME_GOODS_CATEGORY, SELLERPLACE_AREA
+    # 方法1: redefine categories 
+    # NAME_CASH_LOAN_PURPOSE and NAME_GOODS_CATEGORY (数量<1000 并入 Other)
+    previous_application$NAME_CASH_LOAN_PURPOSE[previous_application$NAME_CASH_LOAN_PURPOSE == "Refusal to name the goal" |
+                                                  previous_application$NAME_CASH_LOAN_PURPOSE == "Money for a third person" |
+                                                  previous_application$NAME_CASH_LOAN_PURPOSE == "Hobby" |
+                                                  previous_application$NAME_CASH_LOAN_PURPOSE == "Buying a garage" |
+                                                  previous_application$NAME_CASH_LOAN_PURPOSE == "Gasification / water supply" |
+                                                  previous_application$NAME_CASH_LOAN_PURPOSE == "Business development" |
+                                                  previous_application$NAME_CASH_LOAN_PURPOSE == "Buying a holiday home / land" |
+                                                  previous_application$NAME_CASH_LOAN_PURPOSE == "Furniture" |
+                                                  previous_application$NAME_CASH_LOAN_PURPOSE == "Car repairs" |
+                                                  previous_application$NAME_CASH_LOAN_PURPOSE == "Buying a home" |
+                                                  previous_application$NAME_CASH_LOAN_PURPOSE == "Wedding / gift / holiday"] = "Other"
+    previous_application$NAME_GOODS_CATEGORY[previous_application$NAME_GOODS_CATEGORY == "Animals" |
+                                               previous_application$NAME_GOODS_CATEGORY == "House Construction" |
+                                               previous_application$NAME_GOODS_CATEGORY == "Insurance" |
+                                               previous_application$NAME_GOODS_CATEGORY == "Weapon" |
+                                               previous_application$NAME_GOODS_CATEGORY == "Education" |
+                                               previous_application$NAME_GOODS_CATEGORY == "Additional Service" |
+                                               previous_application$NAME_GOODS_CATEGORY == "Fitness" |
+                                               previous_application$NAME_GOODS_CATEGORY == "Direct Sales"] = "Other"
+    # SELLERPLACE_AREA (level共2097)
+    setSELLER = setdiff(unique(previous_application$SELLERPLACE_AREA),c("-1","0","50")) # the three most frequently shown area-code
+    previous_application$SELLERPLACE_AREA[previous_application$SELLERPLACE_AREA %in% setSELLER] = "Other"
+  
+  } else if (category == "FeatureHashing"){# 方法2: hashing function, original values as keys and are mapped to a smaller set of artificial hash values
+    NAME_CASH_LOAN_PURPOSE_old = data.frame(unique(previous_application$NAME_CASH_LOAN_PURPOSE))
+    hash.obj = hashed.model.matrix(~.-1, 
+                                   NAME_CASH_LOAN_PURPOSE_old, 
+                                   hash.size = 2^4, 
+                                   create.mapping = TRUE)
+    mapping = as.vector(unlist(as.list(attr(hash.obj, "mapping"))))
+    NAME_CASH_LOAN_PURPOSE_old <- as.vector(unique(previous_application$NAME_CASH_LOAN_PURPOSE))
+    previous_application$NAME_CASH_LOAN_PURPOSE = mapvalues(previous_application$NAME_CASH_LOAN_PURPOSE, NAME_CASH_LOAN_PURPOSE_old, mapping)
+    
+    NAME_GOODS_CATEGORY_old = data.frame(unique(previous_application$NAME_GOODS_CATEGORY))
+    hash.obj = hashed.model.matrix(~.-1, 
+                                   NAME_GOODS_CATEGORY_old, 
+                                   hash.size = 2^4, 
+                                   create.mapping = TRUE)
+    mapping = as.vector(unlist(as.list(attr(hash.obj, "mapping"))))
+    NAME_GOODS_CATEGORY_old <- as.vector(unique(previous_application$NAME_GOODS_CATEGORY))
+    previous_application$NAME_GOODS_CATEGORY = mapvalues(previous_application$NAME_GOODS_CATEGORY, NAME_GOODS_CATEGORY_old, mapping)
+    
+    SELLERPLACE_AREA_old = data.frame(unique(previous_application$SELLERPLACE_AREA))
+    hash.obj = hashed.model.matrix(~.-1, 
+                                   SELLERPLACE_AREA_old, 
+                                   hash.size = 2^6, 
+                                   create.mapping = TRUE)
+    mapping = as.vector(unlist(as.list(attr(hash.obj, "mapping"))))
+    SELLERPLACE_AREA_old <- as.vector(unique(previous_application$SELLERPLACE_AREA))
+    previous_application$SELLERPLACE_AREA = mapvalues(previous_application$SELLERPLACE_AREA, SELLERPLACE_AREA_old, mapping)
+    
+  } else if (category == "dummy"){ # 方法3: create dummy variables for categorical variables, and zero-variance/near zero-variance dummy predictors dropped
+    print("This method is not available at the moment")
+  }
+
   for (i in 1:length(varCategory)){
     temp = mergeCategory(varCategory[i],temp)
   }
   temp = mergeCategory("NFLAG_INSURED_ON_APPROVAL",temp)
-  
-  # 处理 SELLERPLACE_AREA
-  setSELLER = setdiff(unique(previous_application$SELLERPLACE_AREA),c(-1,0,50)) # the three most frequently shown area-code
-  previous_application$SELLERPLACE_AREA[previous_application$SELLERPLACE_AREA %in% setSELLER] = "Other"
-  tempSELLER = previous_application[,.N,by = list(SK_ID_CURR, SELLERPLACE_AREA)]
-  tempSELLERwide = dcast(tempSELLER, SK_ID_CURR ~ SELLERPLACE_AREA, fill = 0)
-  names(tempSELLERwide) = c("SK_ID_CURR","SELLERPLACE_AREA_minus1", "SELLERPLACE_AREA_0","SELLERPLACE_AREA_50", "SELLERPLACE_AREA_Other")
-  temp = merge(temp, tempSELLERwide, all = TRUE, by = "SK_ID_CURR")
   
   if (version == 2){
     ## 以下variable(分别)大量且同步缺失

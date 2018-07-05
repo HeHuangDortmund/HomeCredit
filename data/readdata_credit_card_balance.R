@@ -72,10 +72,15 @@ readData = function(exploratory = 0,
                                 SK_DPD_SUM = sum(SK_DPD),
                                 SK_DPD_DEF_SUM = sum(SK_DPD_DEF)),by = list(SK_ID_CURR,SK_ID_PREV)]
   
-  credit_card_balance$NAME_CONTRACT_STATUS[credit_card_balance$NAME_CONTRACT_STATUS != "Active" & credit_card_balance$NAME_CONTRACT_STATUS != "Completed"] = "Other"
+  credit_card_balance$NAME_CONTRACT_STATUS[credit_card_balance$NAME_CONTRACT_STATUS != "Active" & 
+                                           credit_card_balance$NAME_CONTRACT_STATUS != "Completed" & 
+                                           credit_card_balance$NAME_CONTRACT_STATUS != "Signed"] = "Other"
   tempCONTRACT = credit_card_balance[,.N,by = list(SK_ID_CURR, NAME_CONTRACT_STATUS)]
   tempCONTRACTwide = dcast(tempCONTRACT, SK_ID_CURR ~ NAME_CONTRACT_STATUS, fill = 0, value.var = "N")
-  names(tempCONTRACTwide) = c("SK_ID_CURR","NAME_CONTRACT_STATUS_Active", "NAME_CONTRACT_STATUS_Completed","NAME_CONTRACT_STATUS_Other")
+  names(tempCONTRACTwide) = c("SK_ID_CURR","NAME_CONTRACT_STATUS_Active", 
+                              "NAME_CONTRACT_STATUS_Completed",
+                              "NAME_CONTRACT_STATUS_Other",
+                              "NAME_CONTRACT_STATUS_Signed")
   temp = merge(temp, tempCONTRACTwide, all = TRUE, by = "SK_ID_CURR")
   
   temp2 = temp[,.(MONTH_MEAN = mean(N_MONTH),
@@ -101,7 +106,8 @@ readData = function(exploratory = 0,
                   SK_DPD_DEF_SUM = sum(SK_DPD_DEF_SUM),
                   NAME_CONTRACT_STATUS_PREV_CREDIT_Active = sum(NAME_CONTRACT_STATUS_Active),
                   NAME_CONTRACT_STATUS_PREV_CREDIT_Completed = sum(NAME_CONTRACT_STATUS_Completed),
-                  NAME_CONTRACT_STATUS_PREV_CREDIT_Other = sum(NAME_CONTRACT_STATUS_Other)),by = SK_ID_CURR]
+                  NAME_CONTRACT_STATUS_PREV_CREDIT_Other = sum(NAME_CONTRACT_STATUS_Other),
+                  NAME_CONTRACT_STATUS_PREV_CREDIT_Signed = sum(NAME_CONTRACT_STATUS_Signed)),by = SK_ID_CURR]
   
   credit_card_balance = temp2
   
