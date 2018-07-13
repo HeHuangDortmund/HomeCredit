@@ -8,6 +8,8 @@ readData = function(version) {
   library(rprojroot)
   library(data.table)
   library(mlr)
+  library(FeatureHashing)
+  library(plyr)
   root = find_root(is_git_root)
   setwd(root)
   
