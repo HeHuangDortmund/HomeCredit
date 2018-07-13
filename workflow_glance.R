@@ -2,6 +2,7 @@ library("rprojroot")
 library("data.table")
 library("checkmate")
 library("ggplot2")
+library("corrplot")
 requireNamespace("withr")
 root = find_root(is_git_root)
 set.seed(1)
@@ -23,12 +24,27 @@ test = data[data$split == "test",]
 ##ISNA_indicator是否高度相关###########################################################
 matrix.cor = cor(data[,.SD,.SDcols = names(data)[grep("NA_",names(data))]])
 pdf("corr_ISNA_variable.pdf",width = 14, height = 14)
-corrplot(matrix.cor, type= "lower", method = "number", number.font = 5)
+corrplot.mixed(matrix.cor, tl.col = "black", tl.pos = "lt")
 dev.off()
 ## 以下几类变量相互corr较高 (>=0.9), 手动删除NA太多变量之后
 # 1. NA_YEARS_BEGINEXPLUATATION, NA_FLOORSMAX, NA_LIVINGAREA, NA_TOTALAREA_MODE
 # 2. NA_AMT_REQ, NA_BUREAU, NA_DAYS_CREDIT_ENDDATE
 # 3. NA_POS_CASH, NA_INSTALLMENT_PAYMENT, NA_PREV_APPLICATION
+
+varNADrop = c("NA_YEARS_BEGINEXPLUATATION",
+             "NA_FLOORSMAX",
+             "NA_TOTALAREA_MODE",
+             "NA_BUREAU",
+             "NA_DAYS_CREDIT_ENDDATE",
+             "NA_INSTALLMENT_PAYMENT")
+varREDrop = c("YEARS_BEGINEXPLUATATION_MODE",
+              "FLOORSMAX_MODE",
+              "LIVINGAREA_MODE",
+              "YEARS_BEGINEXPLUATATION_MEDI",
+              "FLOORSMAX_MEDI",
+              "LIVINGAREA_MEDI")
+
+data = data[,c(varNADrop,varREDrop) := NULL]
 
 ## 以下几类变量相互corr较高 (>=0.9), 未手动删除NA太多变量
 # 1. NA_YEARS_BEGINEXPLUATATION, NA_FLOORSMAX, NA_ENTRANCES, NA_APARTMENT, NA_ELEVATORS, NA_NONLIVINGAREA, NA_TOTALAREA_MODE
