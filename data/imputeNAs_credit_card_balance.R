@@ -10,7 +10,7 @@ imputeNA <- function(application,
   } else {
     missValue = sapply(application, function(x) sum(is.na(x))) 
     missValue = missValue[missValue > 0]/dim(application)[1]
-    varDrop = names(missValue)[missValue > 0.5]
+    varDrop = names(missValue)[missValue > 2/3]
     setDT(application)
     application = application[,c(varDrop) := NULL]
   }  

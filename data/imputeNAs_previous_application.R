@@ -14,7 +14,7 @@ imputeNA <- function(application,
     missValue = sapply(application, function(x) sum(is.na(x))) 
     missValue = missValue[missValue > 0]/dim(application)[1]
     # barplot(missValue,las = 2,cex.lab=0.2)
-    varDrop = names(missValue)[missValue > 0.5]
+    varDrop = names(missValue)[missValue > 2/3]
     # Note: EXT_SOURCE_1 is also dropped
     setDT(application)
     application = application[,c(varDrop) := NULL]

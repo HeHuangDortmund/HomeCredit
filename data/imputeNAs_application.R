@@ -74,20 +74,27 @@ imputeNA <- function(application,
     missValue = sapply(application, function(x) sum(is.na(x))) 
     missValue = missValue[missValue > 0]/dim(application)[1]
     # barplot(missValue,las = 2,cex.lab=0.2)
-    varDrop = names(missValue)[missValue > 0.5]
-    # Note: EXT_SOURCE_1 is also dropped
+    varDrop = names(missValue)[missValue > 2/3] # EXT_SOURCE_1, OWN_CAR_AGE are kept
     setDT(application)
     application = application[,c(varDrop) := NULL]
     
     application$NA_CIRCLE = as.integer(is.na(application$OBS_30_CNT_SOCIAL_CIRCLE))
     application$NA_AMT_REQ = as.integer(is.na(application$AMT_REQ_CREDIT_BUREAU_DAY))
+    application$NA_DAYS_EMPLOYED = as.integer(is.na(application$DAYS_EMPLOYED))
+    application$NA_EXT_SOURCE_3 = as.integer(is.na(application$EXT_SOURCE_3))
+    application$NA_TOTALAREA_MODE = as.integer(is.na(application$TOTALAREA_MODE))
     application$NA_YEARS_BEGINEXPLUATATION = as.integer(is.na(application$YEARS_BEGINEXPLUATATION_AVG))
     application$NA_FLOORSMAX = as.integer(is.na(application$FLOORSMAX_AVG))
     application$NA_LIVINGAREA = as.integer(is.na(application$LIVINGAREA_AVG))
-    application$NA_EXT_SOURCE_3 = as.integer(is.na(application$EXT_SOURCE_3))
-    application$NA_DAYS_EMPLOYED = as.integer(is.na(application$DAYS_EMPLOYED))
-    application$NA_TOTALAREA_MODE = as.integer(is.na(application$TOTALAREA_MODE))
-    
+    application$NA_ENTRANCES = as.integer(is.na(application$ENTRANCES_AVG))
+    application$NA_APARTMENT = as.integer(is.na(application$APARTMENTS_AVG))
+    application$NA_ELEVATORS = as.integer(is.na(application$ELEVATORS_AVG))
+    application$NA_EXT_SOURCE_1 = as.integer(is.na(application$EXT_SOURCE_1))
+    application$NA_NONLIVINGAREA = as.integer(is.na(application$NONLIVINGAREA_AVG))
+    application$NA_BASEMENTAREA = as.integer(is.na(application$BASEMENTAREA_AVG))
+    application$NA_LANDAREA = as.integer(is.na(application$LANDAREA_AVG))
+    application$NA_YEARS_BUILD = as.integer(is.na(application$YEARS_BUILD_AVG))
+ 
     application = impute(as.data.frame(application), classes = list(numeric = imputeMean()))$data
     application = impute(application, cols = list(DAYS_EMPLOYED = imputeMean()))$data
   }
