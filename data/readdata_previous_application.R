@@ -80,17 +80,11 @@ readData = function(exploratory = 0,
   previous_application[, (ColumnsCat) := lapply(.SD, function(x) as.factor(x)), .SDcols = ColumnsCat]
   ColumnsBinary = names(previous_application)[numLevels == 2]
   previous_application[, (ColumnsBinary) := lapply(.SD, function(x) as.integer(x) - 1), .SDcols = ColumnsBinary]
-  
-  # previous_application$FLAG_LAST_APPL_PER_CONTRACT = as.integer(as.factor(previous_application$FLAG_LAST_APPL_PER_CONTRACT))-1
-  # previous_application$SELLERPLACE_AREA = as.character(previous_application$SELLERPLACE_AREA)
-  
-  # barplot(sort(sapply(previous_application, function(x) sum(is.na(x)))),las = 2)
-  # varCategory = names(previous_application)[sapply(previous_application, function(x) is.character(x))]
-  # varNumeric = setdiff(names(previous_application),varCategory)
+
   if (exploratory == 1){
     ## Exploratory Plots 
-    sapply(varCategory, makeplot, "barplot")
-    sapply(varNumeric, makeplot, "density")
+    sapply(ColumnsCat, makeplot, "barplot")
+    sapply(setdiff(names(previous_application),ColumnsCat)[-c(1,2)], makeplot, "density")
   }
   
   if (version == 2){
@@ -134,20 +128,21 @@ readData = function(exploratory = 0,
   # fill NA in AMT_CREDIT (only one NA, fill it with 0, since its corresponding AMT_APPLICATION is 0, AMT_CREDIT与AMT_APPLICATION高度相关)
   previous_application$AMT_CREDIT[is.na(previous_application$AMT_CREDIT)] = 0
   
+  # 以SK_ID_CURR用mean，min，max汇总numeric
   varMEAN = setdiff(names(previous_application), ColumnsCat)[-c(1,2)]
   temp = previous_application[, c(lapply(.SD, mean, na.rm = TRUE),
                                   lapply(.SD, min, na.rm = TRUE),
-                                  lapply(.SD, max, na.rm = TRUE)), .SDcols = varMEAN, by = list(SK_ID_CURR, SK_ID_PREV)]
-  names(temp)[-c(1,2)] = paste(names(temp)[-c(1,2)], rep(c("MEAN","MIN","MAX"), each = length(varMEAN)), sep = "_")
+                                  lapply(.SD, max, na.rm = TRUE)), .SDcols = varMEAN, by = SK_ID_CURR]
+  names(temp)[-1] = paste(names(temp)[-1], rep(c("MEAN","MIN","MAX"), each = length(varMEAN)), sep = "_")
+  # 替换Inf/-Inf/NaN
   temp[temp == Inf | temp == -Inf] = NA
   temp[temp == "NaN"] = NA
-  
+  # 与每一个SK_ID_CURR对应的PREV ID的数量
   temp_prev = previous_application[,.N, by = SK_ID_CURR]
   names(temp_prev) = c("SK_ID_CURR", "Nr_PREV_APPL_CNT")
+  temp = merge(temp_prev, temp, all = TRUE, by = "SK_ID_CURR")
 
   ## CATEGORY aggregation
-  # fill NAs
-  
   if (category == "redefine"){ # 针对category数量较多(>20), 如NAME_CASH_LOAN_PURPOSE, NAME_GOODS_CATEGORY, SELLERPLACE_AREA
     # 方法1: redefine categories 
     # NAME_CASH_LOAN_PURPOSE and NAME_GOODS_CATEGORY (数量<1000 并入 Other)
@@ -206,22 +201,10 @@ readData = function(exploratory = 0,
     print("This method is not available at the moment")
   }
 
+  # 讲category变量merge进入temp
   for (i in 1:length(ColumnsCat)){
     temp = mergeCategory(ColumnsCat[i],temp)
   }
-  
-  temp_mean = temp[, lapply(.SD, mean, na.rm = TRUE), .SDcols = names(temp)[grep("_MEAN",names(temp))], by = SK_ID_CURR]
-  temp_min = temp[, lapply(.SD, min, na.rm = TRUE), .SDcols = names(temp)[grep("_MIN",names(temp))], by = SK_ID_CURR]
-  temp_max = temp[, lapply(.SD, max, na.rm = TRUE), .SDcols = names(temp)[grep("_MAX",names(temp))], by = SK_ID_CURR]
-  varSUM = setdiff(names(temp),c(names(temp)[grep("_MEAN",names(temp))], names(temp)[grep("_MAX",names(temp))], names(temp)[grep("_MIN",names(temp))]))
-  temp_sum = temp[, lapply(.SD, sum, na.rm = TRUE), .SDcols = varSUM[-c(1,2)], by = SK_ID_CURR]
-
-  temp_all = merge(temp_prev, temp_mean, all = TRUE, by = "SK_ID_CURR")
-  temp_all = merge(temp_all, temp_max, all = TRUE, by = "SK_ID_CURR")
-  temp_all = merge(temp_all, temp_min, all = TRUE, by = "SK_ID_CURR")
-  temp_all = merge(temp_all, temp_sum, all = TRUE, by = "SK_ID_CURR")
-  temp_all[temp_all == Inf | temp_all == -Inf] = NA
-  temp_all[temp_all == "NaN"] = NA
   
   if (version == 2){
     ## 以下variable(分别)大量且同步缺失
@@ -244,7 +227,7 @@ readData = function(exploratory = 0,
     temp$RATE_INTEREST_PRIMARY_MEAN[is.na(temp$RATE_INTEREST_PRIMARY_MEAN)] = mean(temp$RATE_INTEREST_PRIMARY_MEAN, na.rm = TRUE)
     temp$RATE_INTEREST_PRIVILEGED_MEAN[is.na(temp$RATE_INTEREST_PRIVILEGED_MEAN)] = mean(temp$RATE_INTEREST_PRIVILEGED_MEAN, na.rm = TRUE)
   }
-  names(temp_all) = make.names(names(temp_all))
-  previous_application = temp_all
+  names(temp) = make.names(names(temp))
+  previous_application = temp
   return(previous_application)
 }
