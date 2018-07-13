@@ -50,66 +50,42 @@ readData = function(exploratory = 0,
     credit_card_balance$CNT_INSTALMENT_MATURE_CUM[is.na(credit_card_balance$CNT_INSTALMENT_MATURE_CUM)] = 0 # 暂时补0,需merge installments 信息
   }
 
-  temp = credit_card_balance[,.(N_MONTH = .N,
-                                AMT_BALANCE_MEAN = mean(AMT_BALANCE, na.rm = TRUE),
-                                AMT_CREDIT_LIMIT_ACTUAL_MAX = max(AMT_CREDIT_LIMIT_ACTUAL, na.rm = TRUE),
-                                AMT_CREDIT_LIMIT_ACTUAL_MIN = min(AMT_CREDIT_LIMIT_ACTUAL, na.rm = TRUE),
-                                AMT_DRAWINGS_ATM_CURRENT_MEAN = mean(AMT_DRAWINGS_ATM_CURRENT, na.rm = TRUE),
-                                AMT_DRAWINGS_CURRENT_MEAN = mean(AMT_DRAWINGS_CURRENT, na.rm = TRUE),
-                                AMT_DRAWINGS_OTHER_CURRENT_MEAN = mean(AMT_DRAWINGS_OTHER_CURRENT,na.rm = TRUE),
-                                AMT_DRAWINGS_POS_CURRENT_MEAN = mean(AMT_DRAWINGS_POS_CURRENT,na.rm=TRUE),
-                                AMT_INST_MIN_REGULARITY_MEAN = mean(AMT_INST_MIN_REGULARITY,na.rm=TRUE),
-                                AMT_PAYMENT_CURRENT_MEAN = mean(AMT_PAYMENT_CURRENT, na.rm = TRUE),
-                                AMT_PAYMENT_TOTAL_CURRENT_MEAN = mean(AMT_PAYMENT_TOTAL_CURRENT ,na.rm=TRUE),
-                                AMT_RECEIVABLE_PRINCIPAL_MEAN = mean(AMT_RECEIVABLE_PRINCIPAL,na.rm = TRUE),
-                                AMT_RECIVABLE_MEAN = mean(AMT_RECIVABLE, na.rm = TRUE),
-                                AMT_TOTAL_RECEIVABLE_MEAN = mean(AMT_TOTAL_RECEIVABLE,na.rm=TRUE),
-                                CNT_DRAWINGS_ATM_CURRENT_MEAN = mean(CNT_DRAWINGS_ATM_CURRENT, na.rm=TRUE),
-                                CNT_DRAWINGS_CURRENT_MEAN = mean(CNT_DRAWINGS_CURRENT,na.rm=TRUE),
-                                CNT_DRAWINGS_OTHER_CURRENT_MEAN = mean(CNT_DRAWINGS_OTHER_CURRENT,na.rm=TRUE),
-                                CNT_DRAWINGS_POS_CURRENT_MEAN = mean(CNT_DRAWINGS_POS_CURRENT,na.rm=TRUE),
-                                CNT_INSTALMENT_MATURE_CUM_MEAN = mean(CNT_INSTALMENT_MATURE_CUM,na.rm=TRUE),
-                                SK_DPD_SUM = sum(SK_DPD),
-                                SK_DPD_DEF_SUM = sum(SK_DPD_DEF)),by = list(SK_ID_CURR,SK_ID_PREV)]
+  # 对每个变量通过求MAX,SUM和MEAN进行汇总, 以SK_ID_PREV
+  varMEAN = setdiff(names(credit_card_balance),c("SK_ID_CURR","SK_ID_PREV","NAME_CONTRACT_STATUS"))
+  varSUMMAX = c("SK_DPD", "SK_DPD_DEF","AMT_CREDIT_LIMIT_ACTUAL")
+  temp_mean = credit_card_balance[,lapply(.SD, mean, na.rm = TRUE), .SDcols = varMEAN, by = list(SK_ID_CURR,SK_ID_PREV)]
+  names(temp_mean)[-c(1,2)] = paste(names(temp_mean)[-c(1,2)],"MEAN",sep = "_")
+  temp_summax = credit_card_balance[,c(lapply(.SD, sum, na.rm = TRUE),
+                                 lapply(.SD, max, na.rm = TRUE)), .SDcols = varSUMMAX, by = list(SK_ID_CURR,SK_ID_PREV)]
+  names(temp_summax)[-c(1,2)] = paste(names(temp_summax)[-c(1,2)], rep(c("SUM","MAX"), each = length(varSUMMAX)), sep = "_")
+  # 对于每一个SK_ID_PREV求MONTH_BALANCE的数量, 然后求MEAN进行汇总
+  temp_month = credit_card_balance[, .(Nr_Card_MONTH = .N), by = list(SK_ID_CURR,SK_ID_PREV)]
+  # # 对于每一个SK_ID_CURR求相对应的SK_ID_PREV的数量(一个CURR基本只有一个PREV)
+  # temp_ID = credit_card_balance[,.(Nr_CREDIT_CARD = length(unique(SK_ID_PREV))), by = "SK_ID_CURR"]
   
+  # 处理NAME_CONTRACT_STATUS, 合并level
   credit_card_balance$NAME_CONTRACT_STATUS[credit_card_balance$NAME_CONTRACT_STATUS != "Active" & 
                                            credit_card_balance$NAME_CONTRACT_STATUS != "Completed" & 
                                            credit_card_balance$NAME_CONTRACT_STATUS != "Signed"] = "Other"
-  tempCONTRACT = credit_card_balance[,.N,by = list(SK_ID_CURR, NAME_CONTRACT_STATUS)]
-  tempCONTRACTwide = dcast(tempCONTRACT, SK_ID_CURR ~ NAME_CONTRACT_STATUS, fill = 0, value.var = "N")
-  names(tempCONTRACTwide) = c("SK_ID_CURR","NAME_CONTRACT_STATUS_Active", 
-                              "NAME_CONTRACT_STATUS_Completed",
-                              "NAME_CONTRACT_STATUS_Other",
-                              "NAME_CONTRACT_STATUS_Signed")
-  temp = merge(temp, tempCONTRACTwide, all = TRUE, by = "SK_ID_CURR")
+  temp_cat = credit_card_balance[,.N,by = list(SK_ID_CURR, SK_ID_PREV,NAME_CONTRACT_STATUS)]
+  temp_cat_wide = dcast(temp_cat, SK_ID_CURR + SK_ID_PREV ~ NAME_CONTRACT_STATUS, fill = 0, value.var = "N")
+  names(temp_cat_wide)[-c(1,2)] = paste("NAME_CONTRACT_STATUS_CC",names(temp_cat_wide)[-c(1,2)],sep = "_")
+
+  # 汇总变量, 对每一个SK_ID_CURR
+  temp_month = temp_month[, lapply(.SD, mean, na.rm = TRUE), .SDcols = names(temp_month)[-c(1,2)], by = SK_ID_CURR]
+  names(temp_month)[-1] = "Nr_Card_MONTH_MEAN"
+  temp_cat_wide = temp_cat_wide[, lapply(.SD, sum, na.rm = TRUE), .SDcols = names(temp_cat_wide)[-c(1,2)], by = SK_ID_CURR]
+  names(temp_cat_wide)[-1] = paste(names(temp_cat_wide)[-1], "SUM", sep = "_")
+  temp_mean = temp_mean[,lapply(.SD, mean, na.rm = TRUE), .SDcols = names(temp_mean)[-c(1,2)], by = SK_ID_CURR]
+  temp_sum = temp_summax[, lapply(.SD, sum, na.rm = TRUE), .SDcols = c("SK_DPD_SUM","SK_DPD_DEF_SUM","AMT_CREDIT_LIMIT_ACTUAL_SUM"), by = SK_ID_CURR]
+  temp_max = temp_summax[, lapply(.SD, max, na.rm = TRUE), .SDcols = c("SK_DPD_MAX","SK_DPD_DEF_MAX","AMT_CREDIT_LIMIT_ACTUAL_MAX"), by = SK_ID_CURR]
   
-  temp2 = temp[,.(MONTH_MEAN = mean(N_MONTH),
-                  AMT_BALANCE_MEAN = mean(AMT_BALANCE_MEAN),
-                  AMT_CREDIT_LIMIT_ACTUAL_MAX = max(AMT_CREDIT_LIMIT_ACTUAL_MAX),
-                  AMT_CREDIT_LIMIT_ACTUAL_MIN = min(AMT_CREDIT_LIMIT_ACTUAL_MIN),
-                  AMT_DRAWINGS_ATM_CURRENT_MEAN = mean(AMT_DRAWINGS_ATM_CURRENT_MEAN),
-                  AMT_DRAWINGS_CURRENT_MEAN = mean(AMT_DRAWINGS_CURRENT_MEAN),
-                  AMT_DRAWINGS_OTHER_CURRENT_MEAN = mean(AMT_DRAWINGS_OTHER_CURRENT_MEAN),
-                  AMT_DRAWINGS_POS_CURRENT_MEAN = mean(AMT_DRAWINGS_POS_CURRENT_MEAN),
-                  AMT_INST_MIN_REGULARITY_MEAN = mean(AMT_INST_MIN_REGULARITY_MEAN),
-                  AMT_PAYMENT_CURRENT_MEAN = mean(AMT_PAYMENT_CURRENT_MEAN),
-                  AMT_PAYMENT_TOTAL_CURRENT_MEAN = mean(AMT_PAYMENT_TOTAL_CURRENT_MEAN),
-                  AMT_RECEIVABLE_PRINCIPAL_MEAN = mean(AMT_RECEIVABLE_PRINCIPAL_MEAN),
-                  AMT_RECIVABLE_MEAN = mean(AMT_RECIVABLE_MEAN),
-                  AMT_TOTAL_RECEIVABLE_MEAN = mean(AMT_TOTAL_RECEIVABLE_MEAN),
-                  CNT_DRAWINGS_ATM_CURRENT_MEAN = mean(CNT_DRAWINGS_ATM_CURRENT_MEAN),
-                  CNT_DRAWINGS_CURRENT_MEAN = mean(CNT_DRAWINGS_CURRENT_MEAN),
-                  CNT_DRAWINGS_OTHER_CURRENT_MEAN = mean(CNT_DRAWINGS_OTHER_CURRENT_MEAN),
-                  CNT_DRAWINGS_POS_CURRENT_MEAN = mean(CNT_DRAWINGS_POS_CURRENT_MEAN),
-                  CNT_INSTALMENT_MATURE_CUM_MEAN = mean(CNT_INSTALMENT_MATURE_CUM_MEAN),
-                  SK_DPD_SUM = sum(SK_DPD_SUM),
-                  SK_DPD_DEF_SUM = sum(SK_DPD_DEF_SUM),
-                  NAME_CONTRACT_STATUS_PREV_CREDIT_Active = sum(NAME_CONTRACT_STATUS_Active),
-                  NAME_CONTRACT_STATUS_PREV_CREDIT_Completed = sum(NAME_CONTRACT_STATUS_Completed),
-                  NAME_CONTRACT_STATUS_PREV_CREDIT_Other = sum(NAME_CONTRACT_STATUS_Other),
-                  NAME_CONTRACT_STATUS_PREV_CREDIT_Signed = sum(NAME_CONTRACT_STATUS_Signed)),by = SK_ID_CURR]
-  
-  credit_card_balance = temp2
-  
+  # merge
+  temp_all = merge(temp_month, temp_mean,all = TRUE, by = c("SK_ID_CURR"))
+  temp_all = merge(temp_all, temp_sum,all = TRUE, by = c("SK_ID_CURR"))
+  temp_all = merge(temp_all, temp_max,all = TRUE, by = c("SK_ID_CURR"))
+  temp_all = merge(temp_all, temp_cat_wide, all = TRUE, by = c("SK_ID_CURR"))
+
+  credit_card_balance = temp_all
   return(credit_card_balance)
 }
