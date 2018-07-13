@@ -24,15 +24,15 @@ readData = function(version = 1){
   numberOfValues = unlist(lapply(application, function(x){length(unique(x))}))
   
   # 0 < numberOfValues < 20 is Category Variablen, as Factor
-  IndexOfCategory = (numberOfValues < 20 | names(application) == "ORGANIZATION_TYPE" ) & (names(application) != "AMT_REQ_CREDIT_BUREAU_QRT")&
+  IndexOfCategory = (numberOfValues < 20 | names(application) == "ORGANIZATION_TYPE" ) &
     (!(names(application) %in% c("CNT_CHILDREN", 
                                  "CNT_FAM_MEMBERS", 
-                                 "EF_30_CNT_SOCIAL_CIRCL", 
+                                 "DEF_30_CNT_SOCIAL_CIRCLE", 
                                  "DEF_60_CNT_SOCIAL_CIRCLE",
                                  "AMT_REQ_CREDIT_BUREAU_HOUR",
                                  "AMT_REQ_CREDIT_BUREAU_DAY",
                                  "AMT_REQ_CREDIT_BUREAU_WEEK",
-                                 "AMT_REQ_CREDIT_BUREAU_QRT ")))
+                                 "AMT_REQ_CREDIT_BUREAU_QRT")))
   
   columsCategory = names(application)[IndexOfCategory]
   columsCategory = columsCategory[-length(columsCategory)]
