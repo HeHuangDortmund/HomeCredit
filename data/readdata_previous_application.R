@@ -1,5 +1,4 @@
-readData = function(exploratory = 0,
-                    version = 1,
+readData = function(version = 1,
                     category = "FeatureHashing"){
   library(rprojroot)
   library(data.table)
@@ -10,29 +9,6 @@ readData = function(exploratory = 0,
   # 1. outlier以及NA的处理: DAYS_FIRST_DRAWING, DAYS_FIRST_DUE, DAYS_LAST_DUE_1ST_VERSION, DAYS_LAST_DUE, DAYS_TERMINATION, NFLAG_INSURED_ON_APPROVAL
   ########################################################################################
   #### Define some functions
-  makeplot <- function(var, type){
-    pdf(file.path("previous_application_",var,".pdf",fsep = ""), 
-        width = 14, 
-        height = 12)
-    par(cex.lab=1.5,cex.axis=1.5,mar=c(8,5,2,2) + 0.1,lwd=2)
-    if (type == "barplot"){
-      eval(parse(text = file.path("barplot(previous_application[,.N,by =", 
-                                  var,
-                                  "]$N,names.arg  = previous_application[,.N,by =",
-                                  var,
-                                  "]$",
-                                  var,
-                                  ",las = 2)",
-                                  fsep = "")))
-    } else if (type == "density") {
-      eval(parse(text = file.path("plot(density(na.omit(previous_application$", 
-                                  var,
-                                  ")))",
-                                  fsep = "")))
-    }
-    dev.off()
-  }
-  
   fillNA <- function(var, method = "mean"){ # a generic function to fill NAs with mean or other method
     eval(parse(text = file.path("previous_application$",
                                 var,
@@ -80,12 +56,6 @@ readData = function(exploratory = 0,
   previous_application[, (ColumnsCat) := lapply(.SD, function(x) as.factor(x)), .SDcols = ColumnsCat]
   ColumnsBinary = names(previous_application)[numLevels == 2]
   previous_application[, (ColumnsBinary) := lapply(.SD, function(x) as.integer(x) - 1), .SDcols = ColumnsBinary]
-
-  if (exploratory == 1){
-    ## Exploratory Plots 
-    sapply(ColumnsCat, makeplot, "barplot")
-    sapply(setdiff(names(previous_application),ColumnsCat)[-c(1,2)], makeplot, "density")
-  }
   
   if (version == 2){
     ## first fill NAs
@@ -205,6 +175,9 @@ readData = function(exploratory = 0,
   for (i in 1:length(ColumnsCat)){
     temp = mergeCategory(ColumnsCat[i],temp)
   }
+  
+  varDrop = c(names(temp)[grep("RATE_INTEREST_PRIMARY",names(temp))],names(temp)[grep("RATE_INTEREST_PRIVILEGED",names(temp))])
+  temp[,c(varDrop) := NULL]
   
   if (version == 2){
     ## 以下variable(分别)大量且同步缺失

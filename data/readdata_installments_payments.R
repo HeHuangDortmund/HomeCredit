@@ -1,4 +1,4 @@
-readData = function(exploratory = 0){
+readData = function(){
   library(rprojroot)
   library(data.table)
   root = find_root(is_git_root)
@@ -7,28 +7,6 @@ readData = function(exploratory = 0){
   # Problem: 1. NUM_INSTALMENT_NUMBER是否需要转成categorical? NUM_INSTALMENT_VERSION已转
   # 2. NAs in DAYS_ENTRY_PAYMENT, AMT_PAYMENT
   ########################################################################################
-  makeplot <- function(var, data, type){
-    pdf(file.path(data,"_",var,".pdf",fsep = ""), 
-        width = 14, 
-        height = 12)
-    par(cex.lab=1.5,cex.axis=1.5,mar=c(8,5,2,2) + 0.1,lwd=2)
-    if (type == "barplot"){
-      eval(parse(text = file.path("barplot(",data,"[,.N,by =", 
-                                  var,
-                                  "]$N,names.arg  = ",data,"[,.N,by =",
-                                  var,
-                                  "]$",
-                                  var,
-                                  ",las = 2)",
-                                  fsep = "")))
-    } else if (type == "density") {
-      eval(parse(text = file.path("plot(density(na.omit(",data,"$", 
-                                  var,
-                                  ")))",
-                                  fsep = "")))
-    }
-    dev.off()
-  }
   # read data
   installments_payments = fread("../data/installments_payments.csv", na.strings = "") 
   
@@ -69,14 +47,15 @@ readData = function(exploratory = 0){
   temp_all = merge(temp_all, temp, all = TRUE, by = "SK_ID_CURR")
   temp_all = merge(temp_all, temp_cat_wide, all = TRUE, by = "SK_ID_CURR")
  
-  temp_all$DAYS_ENTRY_PAYMENT_MEAN[is.nan(temp$DAYS_ENTRY_PAYMENT_MEAN)] = NA
-  temp_all$AMT_PAYMENT_MEAN[is.nan(temp$AMT_PAYMENT_MEAN)] = NA
-  temp_all$INSTALMENTS_DPD_MEAN[is.nan(temp$INSTALMENTS_DPD_MEAN)] = NA
-  temp_all$INSTALMENTS_LESS_MEAN[is.nan(temp$INSTALMENTS_LESS_MEAN)] = NA
+  temp_all$DAYS_ENTRY_PAYMENT_MEAN[is.nan(temp_all$DAYS_ENTRY_PAYMENT_MEAN)] = NA
+  temp_all$AMT_PAYMENT_MEAN[is.nan(temp_all$AMT_PAYMENT_MEAN)] = NA
+  temp_all$INSTALMENTS_DPD_MEAN[is.nan(temp_all$INSTALMENTS_DPD_MEAN)] = NA
+  temp_all$INSTALMENTS_LESS_MEAN[is.nan(temp_all$INSTALMENTS_LESS_MEAN)] = NA
   
-  if (exploratory == 1){
-    sapply(names(installments_payments), makeplot, "installments_payments", "density")
-  }
+  temp_all$DAYS_ENTRY_PAYMENT_MAX[is.infinite(temp_all$DAYS_ENTRY_PAYMENT_MAX)] = NA
+  temp_all$AMT_PAYMENT_MAX[is.infinite(temp_all$AMT_PAYMENT_MAX)] = NA
+  temp_all$INSTALMENTS_DPD_MAX[is.infinite(temp_all$INSTALMENTS_DPD_MAX)] = NA
+  temp_all$INSTALMENTS_LESS_MAX[is.infinite(temp_all$INSTALMENTS_LESS_MAX)] = NA
   
   installments_payments = temp_all
   return(installments_payments)

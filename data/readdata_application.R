@@ -1,4 +1,4 @@
-readData = function(version = 1){
+readData = function(){
   library(rprojroot)
   library(data.table)
   root = find_root(is_git_root)

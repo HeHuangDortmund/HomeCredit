@@ -1,5 +1,4 @@
 imputeNA <- function(application,
-                     exploratory = 0, # 1 produces exploratory plot
                      naDrop = FALSE){ # naDrop=TRUE drops variables with too many NAs
   
   # factor(category) 同意用常量 “miss” 填补
@@ -24,17 +23,6 @@ imputeNA <- function(application,
   application$DAYS_LAST_PHONE_CHANGE[is.na(application$DAYS_LAST_PHONE_CHANGE)] = mean(application$DAYS_LAST_PHONE_CHANGE, na.rm = TRUE)
   
   # numeric 标注NA, 然后用均值填补， 
-  if (exploratory == 1){
-    missValue = sapply(application, function(x) sum(is.na(x))) # too many missing value
-    missValue = missValue[missValue >0]
-    missValue = sort(missValue)
-    missVar = names(missValue)
-    
-    pdf(file.path(root,"plots", "missValueNumeric.pdf"))
-    barplot(missValue, las = 2, cex.lab=0.2)
-    dev.off()
-  }
-  
   if (naDrop == FALSE){
     # OBS_30_CNT_SOCIAL_CIRCLE,OBS_60_CNT_SOCIAL_CIRCLE,DEF_60_CNT_SOCIAL_CIRCLE,
     # AMT_REQ_CREDIT_BUREAU_HOUR,AMT_REQ_CREDIT_BUREAU_DAY,AMT_REQ_CREDIT_BUREAU_WEEK,AMT_REQ_CREDIT_BUREAU_MON,AMT_REQ_CREDIT_BUREAU_YEAR,

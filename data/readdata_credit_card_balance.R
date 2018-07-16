@@ -1,5 +1,4 @@
-readData = function(exploratory = 0,
-                    version = 1){
+readData = function(version = 1){
   library(rprojroot)
   library(data.table)
   root = find_root(is_git_root)
@@ -7,37 +6,8 @@ readData = function(exploratory = 0,
   ########################################################################################
   # Problem: fill NAs, e.g., CNT_INSTALMENT_MATURE_CUM, AMT_INST_MIN_REGULARITY, AMT_PAYMENT_CURRENT
   ########################################################################################
-  makeplot <- function(var, data, type){
-    pdf(file.path(data,"_",var,".pdf",fsep = ""), 
-        width = 14, 
-        height = 12)
-    par(cex.lab=1.5,cex.axis=1.5,mar=c(8,5,2,2) + 0.1,lwd=2)
-    if (type == "barplot"){
-      eval(parse(text = file.path("barplot(",data,"[,.N,by =", 
-                                  var,
-                                  "]$N,names.arg  = ",data,"[,.N,by =",
-                                  var,
-                                  "]$",
-                                  var,
-                                  ",las = 2)",
-                                  fsep = "")))
-    } else if (type == "density") {
-      eval(parse(text = file.path("plot(density(na.omit(",data,"$", 
-                                  var,
-                                  ")))",
-                                  fsep = "")))
-    }
-    dev.off()
-  }
-  
   credit_card_balance = fread("../data/credit_card_balance.csv", na.strings = "")
-  if (exploratory == 1){
-    varCategory = names(credit_card_balance)[sapply(credit_card_balance, function(x) is.character(x))]
-    varNumeric = setdiff(names(credit_card_balance),varCategory)
-    sapply(varCategory, makeplot, "credit_card_balance", "barplot")
-    sapply(varNumeric, makeplot, "credit_card_balance", "density")
-  }
-  
+
   if (version == 2){ # aggregation之前先用0填补一部分NA, version==1 直接汇总
     credit_card_balance$AMT_DRAWINGS_ATM_CURRENT[is.na(credit_card_balance$AMT_DRAWINGS_ATM_CURRENT)] = 0
     credit_card_balance$AMT_DRAWINGS_OTHER_CURRENT[is.na(credit_card_balance$AMT_DRAWINGS_OTHER_CURRENT)] = 0
