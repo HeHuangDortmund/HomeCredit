@@ -121,6 +121,8 @@ readData = function(){
   temp_all = merge(temp_all, temp2_wide, all = TRUE, by = "SK_ID_CURR")
   temp_all = merge(temp_all, temp3_wide, all = TRUE, by = "SK_ID_CURR")
   temp_all = merge(temp_all, temp4_wide, all = TRUE, by = "SK_ID_CURR")
+  varDrop = names(temp_all)[grep("AMT_ANNUITY", names(temp_all))]
+  temp_all[,c(varDrop) := NULL] # too many NAs (71% in bureauMerged)
   return(temp_all)
 }
   #####################以下为初始版本,留作备份############################################

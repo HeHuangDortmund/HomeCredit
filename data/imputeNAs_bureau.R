@@ -5,7 +5,7 @@ imputeNA <- function(application,method = "mean"){
   application$NA_DAYS_ENDDATE_FACT = as.integer(is.na(application$DAYS_ENDDATE_FACT_MAX))
   application$NA_AMT_CREDIT_MAX_OVERDUE = as.integer(is.na(application$AMT_CREDIT_MAX_OVERDUE_MAX))
   application$NA_BUREAU_STATUS_MEAN = as.integer(is.na(application$BUREAU_STATUS_0_MEAN))
-  application$NA_AMT_ANNUITY_MEAN = as.integer(is.na(application$AMT_ANNUITY_MEAN))
+  # application$NA_AMT_ANNUITY_MEAN = as.integer(is.na(application$AMT_ANNUITY_MEAN))
   if (method == "mixed"){
     application = impute(as.data.frame(application), 
                          cols = list(CREDIT_DAY_OVERDUE_MEAN = 0,

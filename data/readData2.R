@@ -20,7 +20,7 @@ readData = function(version) {
     source(file.path(root,"data","readdata_application.R"))
     application = readData()
     source(file.path(root,"data","imputeNAs_application.R"))
-    application = imputeNA(application, naDrop = TRUE) # 删除了NA过多的变量
+    application = imputeNA(application, naDrop = TRUE) # 删除了NA过多的变量(比例>2/3)
   }
   
   ##############################################################################
@@ -28,7 +28,7 @@ readData = function(version) {
   ##############################################################################
   if(version >= 2){
     source(file.path(root, "data", "readdata_bureau.R"))
-    bureau = readData()
+    bureau = readData() # 移除AMT_ANNUITY(NA过多)
     application = merge(application, bureau, all.x = TRUE, by = "SK_ID_CURR")
     source(file.path(root, "data", "imputeNAs_bureau.R"))
     application = imputeNA(application,method = "mixed")
@@ -42,7 +42,7 @@ readData = function(version) {
     credit_card_balance = readData()
     application = merge(application, credit_card_balance, all.x = TRUE, by = "SK_ID_CURR")
     source(file.path(root, "data", "imputeNAs_credit_card_balance.R"))
-    application = imputeNA(application, naDrop = TRUE)# 删除了NA过多的变量
+    application = imputeNA(application, naDrop = TRUE)# 删除了在merge过程中产生NA过多的变量
     
     source(file.path(root, "data", "readdata_installments_payments.R"))
     installments_payments = readData()
@@ -57,10 +57,10 @@ readData = function(version) {
     application = imputeNA(application)
     
     source(file.path(root, "data", "readdata_previous_application.R"))
-    previous_application = readData()
+    previous_application = readData() # 移除RATE_INTEREST_PRIMARY,RATE_INTEREST_PRIVILEGED (NA过多)
     application = merge(application, previous_application, all.x = TRUE, by = "SK_ID_CURR")
     source(file.path(root, "data", "imputeNAs_previous_application.R"))
-    application = imputeNA(application, naDrop = TRUE)# 删除了NA过多的变量
+    application = imputeNA(application, naDrop = TRUE)# 删除了在merge过程中产生NA过多的变量
   }
   
   return(application)
