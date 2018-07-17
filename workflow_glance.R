@@ -77,13 +77,14 @@ test[const] = NULL
 # train.task = makeClassifTask(id = "class", data = as.data.frame(train), target = "TARGET")
 # fv = generateFilterValuesData(train.task, method = "randomForest.importance")
 start_time = Sys.time()
-quick_RF = randomForest(train[,-88],train[,88], ntree = 30, importance = TRUE)
+quick_RF = randomForest(train[,-88],train[,88], ntree = 10, importance = FALSE, nodesize = 3500, proximity = FALSE) # runtime 18min
 end_time = Sys.time()
 imp_RF <- importance(quick_RF)
 imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
 imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
 
 ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
+ggsave("feature_importance.pdf")
 # add feature SUM_OVERDUE
 source(file.path(root, "preproc", "add_feature_SUM_OVERDUE.R"))
 data = preproc(data)
