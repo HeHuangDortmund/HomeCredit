@@ -73,18 +73,35 @@ const = names(train)[const]
 train[const]= NULL
 test[const] = NULL
 
-#### feature importance
+# add feature
+source(file.path(root, "preproc", "add_feature.R"))
+
+#### feature importance with Random Forest
 # train.task = makeClassifTask(id = "class", data = as.data.frame(train), target = "TARGET")
 # fv = generateFilterValuesData(train.task, method = "randomForest.importance")
 start_time = Sys.time()
-quick_RF = randomForest(train[,-88],train[,88], ntree = 10, importance = FALSE, nodesize = 3500, proximity = FALSE) # runtime 18min
+train$TARGET = factor(train$TARGET) # factor(TARGET), then classification in RF
+quick_RF = randomForest(train[,-88],train[,88], 
+                        ntree = 30, 
+                        importance = TRUE, 
+                        nodesize = 3500, # default for classif is 1, too small
+                        proximity = FALSE,
+                        do.trace = 1) # runtime 54min
 end_time = Sys.time()
 imp_RF <- importance(quick_RF)
-imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
-imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
+imp_DF <- data.frame(Variables = row.names(imp_RF), Gini = imp_RF[,4])
+imp_DF <- imp_DF[order(imp_DF$Gini, decreasing = TRUE),]
 
-ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
-ggsave("feature_importance.pdf")
+ggplot(imp_DF[1:50,], aes(x=reorder(Variables, Gini), y=Gini, fill=Gini)) + 
+geom_bar(stat = 'identity') + 
+labs(x = 'Variables', y= 'Mean decrease in Gini Index') + 
+coord_flip() + 
+theme(legend.position="none")
+ggsave(file.path(root, "plots","feature_importance.pdf"))
+
+var.list = as.vector(imp_DF$Variables[1:300])
+# write.table(var.list, "var_list.txt")
+
 # add feature SUM_OVERDUE
 source(file.path(root, "preproc", "add_feature_SUM_OVERDUE.R"))
 data = preproc(data)
