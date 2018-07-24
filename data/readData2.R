@@ -42,7 +42,7 @@ readData = function(version) {
     credit_card_balance = readData()
     application = merge(application, credit_card_balance, all.x = TRUE, by = "SK_ID_CURR")
     source(file.path(root, "data", "imputeNAs_credit_card_balance.R"))
-    application = imputeNA(application, naDrop = TRUE)# 删除了在merge过程中产生NA过多的变量
+    application = imputeNA(application, naDrop = FALSE)# naDrop = FALSE删除了在merge过程中产生NA过多(>2/3)的变量, 但会删除所有credit_card数据。。。
     
     source(file.path(root, "data", "readdata_installments_payments.R"))
     installments_payments = readData()
