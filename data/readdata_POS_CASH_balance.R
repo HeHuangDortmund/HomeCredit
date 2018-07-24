@@ -41,5 +41,8 @@ readData = function(version = 1){
   POS_CASH_balance = merge(temp,temp_cat_wide,all = TRUE, by = "SK_ID_CURR")
   rm(temp,temp_cat,temp_cat_wide)
   
+  names(POS_CASH_balance)[grep("SK_DPD",names(POS_CASH_balance))] = paste(names(POS_CASH_balance)[grep("SK_DPD",names(POS_CASH_balance))],"POS",sep="_")
+  names(POS_CASH_balance)[grep("MONTHS_BALANCE",names(POS_CASH_balance))] = paste(names(POS_CASH_balance)[grep("MONTHS_BALANCE",names(POS_CASH_balance))],"POS",sep="_")
+  
   return(POS_CASH_balance)
 }

@@ -22,7 +22,7 @@ readData = function(version = 1){
 
   # 对每个变量通过求MAX,SUM和MEAN进行汇总, 以SK_ID_PREV
   varMEAN = setdiff(names(credit_card_balance),c("SK_ID_CURR","SK_ID_PREV","NAME_CONTRACT_STATUS"))
-  varSUMMAX = c("SK_DPD", "SK_DPD_DEF","AMT_CREDIT_LIMIT_ACTUAL")
+  varSUMMAX = c("SK_DPD", "SK_DPD_DEF","AMT_CREDIT_LIMIT_ACTUAL","CNT_INSTALMENT_MATURE_CUM")
   temp_mean = credit_card_balance[,lapply(.SD, mean, na.rm = TRUE), .SDcols = varMEAN, by = list(SK_ID_CURR,SK_ID_PREV)]
   names(temp_mean)[-c(1,2)] = paste(names(temp_mean)[-c(1,2)],"MEAN",sep = "_")
   temp_summax = credit_card_balance[,c(lapply(.SD, sum, na.rm = TRUE),
@@ -55,6 +55,9 @@ readData = function(version = 1){
   temp_all = merge(temp_all, temp_sum,all = TRUE, by = c("SK_ID_CURR"))
   temp_all = merge(temp_all, temp_max,all = TRUE, by = c("SK_ID_CURR"))
   temp_all = merge(temp_all, temp_cat_wide, all = TRUE, by = c("SK_ID_CURR"))
+  
+  names(temp_all)[grep("SK_DPD",names(temp_all))] = paste(names(temp_all)[grep("SK_DPD",names(temp_all))],"CC",sep="_")
+  names(temp_all)[grep("MONTHS_BALANCE",names(temp_all))] = paste(names(temp_all)[grep("MONTHS_BALANCE",names(temp_all))],"CC",sep="_")
 
   credit_card_balance = temp_all
   return(credit_card_balance)
