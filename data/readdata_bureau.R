@@ -48,6 +48,7 @@ readData = function(){
              "AMT_CREDIT_SUM_DEBT",
              "AMT_CREDIT_SUM_LIMIT",
              "AMT_CREDIT_SUM_OVERDUE",
+             "CNT_CREDIT_PROLONG",
              "AMT_ANNUITY")
   varMEAN = c("DAYS_CREDIT",
               "CREDIT_DAY_OVERDUE",
