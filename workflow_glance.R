@@ -10,8 +10,10 @@ set.seed(1)
 #1. 尝试找出category变量中特定level与TARGET的关联, 避免在合并categories时损失过多信息 (解决办法:作图来看不明显, 对于类型太多的变量使用hash trick)
 #2. 手动删除NA太多的变量(partially done, see readData2.R)
 #3. 手动删除意义上重复变量, 如MOD,AVG,MEDI (partially done)
-#4. 特征选择: randomforest和mlr (未做)
-#5. 建模: logistic, NN(与ROC等价的loss function), xgboost (未做)
+#4. 特征选择: randomforest和mlr (partially done)
+#5. 建模: logistic, NN(与ROC等价的loss function), xgboost (partially done lightGBM)
+#6. 处理month balance data， time-dependent trend， 利用var， diff或者ts model...
+#7. 注意aggregation和add feature的顺序
 
 # read data
 source(file.path(root,"data", "readData2.R"))
