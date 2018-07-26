@@ -58,7 +58,7 @@ imputeNA <- function(application,
     
     application = impute(application, classes = list(numeric = imputeMean()))$data
     application = impute(application, cols = list(DAYS_EMPLOYED = imputeMean()))$data
-  } else { # drops variables with too many NAs (percentage > 50%)
+  } else { # drops variables with too many NAs (percentage > 2/3)
     missValue = sapply(application, function(x) sum(is.na(x))) 
     missValue = missValue[missValue > 0]/dim(application)[1]
     # barplot(missValue,las = 2,cex.lab=0.2)
