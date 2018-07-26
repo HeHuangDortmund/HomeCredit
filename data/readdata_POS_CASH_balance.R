@@ -9,6 +9,7 @@ readData = function(version = 1){
     POS_CASH_balance$CNT_INSTALMENT[is.na(POS_CASH_balance$CNT_INSTALMENT)] = mean(POS_CASH_balance$CNT_INSTALMENT, na.rm = TRUE)
     POS_CASH_balance$CNT_INSTALMENT_FUTURE[is.na(POS_CASH_balance$CNT_INSTALMENT_FUTURE)] = mean(POS_CASH_balance$CNT_INSTALMENT_FUTURE, na.rm = TRUE)
   }
+  POS_CASH_balance[, Add_RATIO_INSTALMENT_LEFT := CNT_INSTALMENT_FUTURE / CNT_INSTALMENT]
   # 对每个变量通过求MEAN和MAX进行汇总
   temp_name = setdiff(names(POS_CASH_balance),c("SK_ID_PREV","SK_ID_CURR","NAME_CONTRACT_STATUS"))
   temp = POS_CASH_balance[, c(lapply(.SD, mean, na.rm = TRUE),
@@ -41,6 +42,7 @@ readData = function(version = 1){
   POS_CASH_balance = merge(temp,temp_cat_wide,all = TRUE, by = "SK_ID_CURR")
   rm(temp,temp_cat,temp_cat_wide)
   
+  POS_CASH_balance[,c("Add_RATIO_INSTALMENT_LEFT_MAX")] = NULL
   names(POS_CASH_balance)[grep("SK_DPD",names(POS_CASH_balance))] = paste(names(POS_CASH_balance)[grep("SK_DPD",names(POS_CASH_balance))],"POS",sep="_")
   names(POS_CASH_balance)[grep("MONTHS_BALANCE",names(POS_CASH_balance))] = paste(names(POS_CASH_balance)[grep("MONTHS_BALANCE",names(POS_CASH_balance))],"POS",sep="_")
   

@@ -93,11 +93,18 @@ readData = function(version = 1,
     previous_application = fillNA("AMT_GOODS_PRICE")
 
   }
-
-  ## NUMERIC aggregation
   # fill NA in AMT_CREDIT (only one NA, fill it with 0, since its corresponding AMT_APPLICATION is 0, AMT_CREDIT与AMT_APPLICATION高度相关)
   previous_application$AMT_CREDIT[is.na(previous_application$AMT_CREDIT)] = 0
   
+  # add hand crafted features
+  previous_application[, `:=`(Add_DIFF_CREDIT_RECEIVED_ASKED_PREV = AMT_CREDIT - AMT_APPLICATION,
+                              Add_DIFF_ASKED_GOODS_PRICE_PREV = AMT_APPLICATION - AMT_GOODS_PRICE,
+                              Add_DIFF_RECEIVED_GOODS_PRICE_PREV = AMT_CREDIT - AMT_GOODS_PRICE,
+                              Add_RATIO_PAYMENT_PREV = AMT_ANNUITY/AMT_CREDIT,
+                              Add_DIFF_DAYS_LAST_DUE_PREV = DAYS_LAST_DUE_1ST_VERSION - DAYS_LAST_DUE
+  ), by = list(SK_ID_CURR,SK_ID_PREV)]
+  
+  ## NUMERIC aggregation
   # 以SK_ID_CURR用mean，min，max汇总numeric
   varMEAN = setdiff(names(previous_application), ColumnsCat)[-c(1,2)]
   temp = previous_application[, c(lapply(.SD, mean, na.rm = TRUE),
@@ -201,6 +208,7 @@ readData = function(version = 1,
     temp$RATE_INTEREST_PRIVILEGED_MEAN[is.na(temp$RATE_INTEREST_PRIVILEGED_MEAN)] = mean(temp$RATE_INTEREST_PRIVILEGED_MEAN, na.rm = TRUE)
   }
   names(temp) = make.names(names(temp))
+  names(temp)[3] = "AMT_ANNUITY_PREV_MEAN" # 与BUREAU中的AMT_ANNUITY_MEAN重名
   previous_application = temp
   return(previous_application)
 }
