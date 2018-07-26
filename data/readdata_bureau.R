@@ -13,10 +13,17 @@ readData = function(){
   bureau = fread("../data/bureau.csv", na.strings = "")
   bureau_balance = fread("../data/bureau_balance.csv", na.strings = "")
   
+  entropy <- function(x){
+    p = table(x)/length(x)
+    y = -sum(p*log(p, base = 2)) # Shannon's entropy
+    return(y)
+  }
+  
   # 汇总bureau balance
   temp_balance = bureau_balance[, .(BUREAU_MONTH_BALANCE_MIN= min(MONTHS_BALANCE, na.rm=TRUE), 
                                     BUREAU_MONTH_BALANCE_MAX = max(MONTHS_BALANCE, na.rm=TRUE),
-                                    BUREAU_MONTH_BALANCE_Nr = length(MONTHS_BALANCE)), by = SK_ID_BUREAU]
+                                    BUREAU_MONTH_BALANCE_Nr = length(MONTHS_BALANCE),
+                                    BUREAU_STATUS_ENTROPY = entropy(STATUS)), by = SK_ID_BUREAU]
   tmp = bureau_balance[,.N, by = list(SK_ID_BUREAU,STATUS)]
   tmp = tmp[, percentage := N/sum(N), by = SK_ID_BUREAU]
   wideData = dcast(tmp, SK_ID_BUREAU ~ STATUS, value.var = "percentage", fill = 0)
@@ -29,6 +36,12 @@ readData = function(){
   # cat("Are all SK_ID_BUREAU in Table bureau_balance also in Table bureau? :",all(unique(bureau_balance$SK_ID_BUREAU) %in% unique(bureau$SK_ID_BUREAU)), "\n")
   
   bureauMerged = merge(bureau, bureau_balance, all.x = TRUE, by = "SK_ID_BUREAU")
+  bureauMerged[, `:=`(DAYS_CREDIT_ENDDATE_POSITIVE = as.integer(ifelse(DAYS_CREDIT_ENDDATE >0 , 1, 0)),
+                      Add_RATIO_DEBT_CREDIT_BUREAU = AMT_CREDIT_SUM_DEBT / AMT_CREDIT_SUM,
+                      Add_RATIO_LIMIT_CREDIT_BUREAU = AMT_CREDIT_SUM_LIMIT / AMT_CREDIT_SUM,
+                      Add_RATIO_OVERDUE_CREDIT_BUREAU = AMT_CREDIT_SUM_OVERDUE / AMT_CREDIT_SUM,
+                      Add_RATIO_PAYMENT_BUREAU = AMT_ANNUITY / AMT_CREDIT_SUM
+                      ), by = SK_ID_BUREAU]
   
   temp_name = setdiff(names(bureauMerged),c("CREDIT_ACTIVE",
                                             "CREDIT_CURRENCY",
@@ -49,7 +62,8 @@ readData = function(){
              "AMT_CREDIT_SUM_LIMIT",
              "AMT_CREDIT_SUM_OVERDUE",
              "CNT_CREDIT_PROLONG",
-             "AMT_ANNUITY")
+             "AMT_ANNUITY",
+             "DAYS_CREDIT_ENDDATE_POSITIVE")
   varMEAN = c("DAYS_CREDIT",
               "CREDIT_DAY_OVERDUE",
               "DAYS_CREDIT_ENDDATE",
@@ -69,7 +83,13 @@ readData = function(){
               "BUREAU_STATUS_5",
               "BUREAU_STATUS_C",
               "BUREAU_STATUS_X",
-              "BUREAU_MONTH_BALANCE_Nr")
+              "BUREAU_MONTH_BALANCE_Nr",
+              "BUREAU_STATUS_ENTROPY",
+              "Add_RATIO_DEBT_CREDIT_BUREAU",
+              "Add_RATIO_LIMIT_CREDIT_BUREAU",
+              "Add_RATIO_OVERDUE_CREDIT_BUREAU",
+              "Add_RATIO_PAYMENT_BUREAU"
+              )
   varMAX = c("CREDIT_DAY_OVERDUE",
              "DAYS_CREDIT",
              "DAYS_CREDIT_ENDDATE",
@@ -79,13 +99,15 @@ readData = function(){
              "AMT_CREDIT_SUM",
              "AMT_CREDIT_SUM_DEBT",
              "AMT_CREDIT_SUM_LIMIT",
-             "BUREAU_MONTH_BALANCE_MAX")
+             "BUREAU_MONTH_BALANCE_MAX",
+             "BUREAU_STATUS_ENTROPY")
   varMIN = c("DAYS_CREDIT",
              "DAYS_CREDIT_ENDDATE",
              "DAYS_ENDDATE_FACT",
              "AMT_CREDIT_MAX_OVERDUE",
              "CNT_CREDIT_PROLONG",
-             "BUREAU_MONTH_BALANCE_MIN")
+             "BUREAU_MONTH_BALANCE_MIN",
+             "BUREAU_STATUS_ENTROPY")
   varSUM = paste(varSUM,"SUM",sep = "_")
   varMEAN = paste(varMEAN,"MEAN",sep = "_")
   varMAX = paste(varMAX,"MAX",sep = "_")
@@ -122,8 +144,8 @@ readData = function(){
   temp_all = merge(temp_all, temp2_wide, all = TRUE, by = "SK_ID_CURR")
   temp_all = merge(temp_all, temp3_wide, all = TRUE, by = "SK_ID_CURR")
   temp_all = merge(temp_all, temp4_wide, all = TRUE, by = "SK_ID_CURR")
-  varDrop = names(temp_all)[grep("AMT_ANNUITY", names(temp_all))]
-  temp_all[,c(varDrop) := NULL] # too many NAs (71% in bureauMerged)
+  # varDrop = names(temp_all)[grep("AMT_ANNUITY", names(temp_all))]
+  # temp_all[,c(varDrop) := NULL] # too many NAs (71% in bureauMerged)
   return(temp_all)
 }
   #####################以下为初始版本,留作备份############################################
