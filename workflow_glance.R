@@ -55,10 +55,15 @@ data = data[,c(varDrop_ISNA,varDrop_Replicated) := NULL]
 # 4. NA_DAYS_CREDIT_ENDDATE, NA_BUREAU, NA_AMT_REQ
 # 5. NA_INSTALLMENT_PAYMENT, NA_POS_CASH, NA_PREV_APPLICATION, NA_DAYS_FIRST_DRAWING_MEAN, NA_AMT_DRAWINGS_MEAN
 
+# add feature
+source(file.path(root, "preproc", "add_feature.R"))
+preproc(data)
 nameFactor = names(data)[unlist(lapply(data, function(x) is.factor(x)))]
 data = createDummyFeatures(as.data.frame(data), target = "TARGET", 
                            cols = nameFactor,
                            method = "reference")
+# fwrite(data,"full_data.csv")
+
 train = data[data$split == "train",]
 test = data[data$split == "test",]
 
@@ -75,8 +80,6 @@ const = names(train)[const]
 train[const]= NULL
 test[const] = NULL
 
-# add feature
-source(file.path(root, "preproc", "add_feature.R"))
 
 #### feature importance with Random Forest
 # train.task = makeClassifTask(id = "class", data = as.data.frame(train), target = "TARGET")
@@ -99,9 +102,9 @@ geom_bar(stat = 'identity') +
 labs(x = 'Variables', y= 'Mean decrease in Gini Index') + 
 coord_flip() + 
 theme(legend.position="none")
-ggsave(file.path(root, "plots","feature_importance.pdf"))
+ggsave(file.path(root, "plots","feature_importance_randomForest.pdf"))
 
-var.list = as.vector(imp_DF$Variables[1:300])
+# var.list = as.vector(imp_DF$Variables[1:300])
 # write.table(var.list, "var_list.txt")
 
 # add feature SUM_OVERDUE
