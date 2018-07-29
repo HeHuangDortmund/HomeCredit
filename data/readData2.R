@@ -20,7 +20,7 @@ readData = function(version) {
     source(file.path(root,"data","readdata_application.R"))
     application = readData()
     source(file.path(root,"data","imputeNAs_application.R"))
-    application = imputeNA(application, naDrop = FALSE) # 删除了NA过多的变量(比例>2/3)
+    application = imputeNA(application, naDrop = FALSE) # 不删除了NA过多的变量(比例>2/3)
   }
   
   ##############################################################################

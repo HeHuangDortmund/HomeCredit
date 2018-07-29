@@ -57,12 +57,12 @@ imputeNA <- function(application,
     application$NA_DAYS_EMPLOYED = as.integer(is.na(application$DAYS_EMPLOYED))
     
     application = impute(application, classes = list(numeric = imputeMean()))$data
-    application = impute(application, cols = list(DAYS_EMPLOYED = imputeMean()))$data
   } else { # drops variables with too many NAs (percentage > 2/3)
     missValue = sapply(application, function(x) sum(is.na(x))) 
     missValue = missValue[missValue > 0]/dim(application)[1]
     # barplot(missValue,las = 2,cex.lab=0.2)
     varDrop = names(missValue)[missValue > 2/3] # EXT_SOURCE_1, OWN_CAR_AGE are kept
+    varDrop = varDrop[-13] # keep Add_RATIO_CAR_EMPLOYED
     setDT(application)
     application = application[,c(varDrop) := NULL]
     
@@ -81,10 +81,10 @@ imputeNA <- function(application,
     application$NA_NONLIVINGAREA = as.integer(is.na(application$NONLIVINGAREA_AVG))
     application$NA_BASEMENTAREA = as.integer(is.na(application$BASEMENTAREA_AVG))
     application$NA_LANDAREA = as.integer(is.na(application$LANDAREA_AVG))
+    application$NA_OWN_CAR_AGE = as.integer(is.na(application$OWN_CAR_AGE))
     application$NA_YEARS_BUILD = as.integer(is.na(application$YEARS_BUILD_AVG))
  
     application = impute(as.data.frame(application), classes = list(numeric = imputeMean()))$data
-    application = impute(application, cols = list(DAYS_EMPLOYED = imputeMean()))$data
   }
   
   application = as.data.table(application)
