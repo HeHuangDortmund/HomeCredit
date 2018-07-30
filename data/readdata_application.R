@@ -49,7 +49,10 @@ readData = function(){
               .SDcols = columsBinar] 
   
   # add new features
-  application[,`:=`(Add_RATIO_ANNUITY_INCOME = AMT_ANNUITY / AMT_INCOME_TOTAL,
+  application[,`:=`(EXT_SOURCE_MEAN = apply(.SD,1,mean,na.rm=TRUE)),.SDcols = c("EXT_SOURCE_1","EXT_SOURCE_2","EXT_SOURCE_3")]
+  application[,`:=`(EXT_SOURCE_MIN = pmin(EXT_SOURCE_1,EXT_SOURCE_2,EXT_SOURCE_3, na.rm = TRUE),
+                    EXT_SOURCE_MAX = pmax(EXT_SOURCE_1,EXT_SOURCE_2,EXT_SOURCE_3, na.rm = TRUE),
+                    Add_RATIO_ANNUITY_INCOME = AMT_ANNUITY / AMT_INCOME_TOTAL,
                     Add_RATIO_CREDIT_INCOME = AMT_CREDIT / AMT_INCOME_TOTAL,
                     Add_RATIO_CREDIT_GOODS = AMT_CREDIT / AMT_GOODS_PRICE, 
                     Add_RATIO_PAYMENT = AMT_ANNUITY / AMT_CREDIT, 
