@@ -6,7 +6,17 @@ root = find_root(is_git_root)
 set.seed(1)
 
 data = fread("../data/full_data.csv")
+data = as.data.table(data)
 
+# add feature
+source(file.path(root, "preproc", "add_feature.R"))
+preproc(data)
+
+nameFactor = names(data)[unlist(lapply(data, function(x) is.character(x)))]
+nameFactor = nameFactor[-14]
+data = createDummyFeatures(as.data.frame(data), target = "TARGET",
+                           cols = nameFactor,
+                           method = "reference")
 data$Add_RATIO_MEAN_PAYMENT_PREV[is.na(data$Add_RATIO_MEAN_PAYMENT_PREV)] = mean(data$Add_RATIO_MEAN_PAYMENT_PREV, na.rm = TRUE)
 
 train = data[data$split == "train",]
@@ -38,12 +48,12 @@ xgb_learner = makeLearner("classif.xgboost",
                           par.vals = list(
                             objective = "binary:logistic",
                             eval_metric = "auc",
-                            nrounds = 10,
+                            nrounds = 100,
                             verbose = 1
                           ))
 
 xgb_params = makeParamSet(makeIntegerParam("max_depth", lower = 5, upper = 8),
-                          makeNumericParam("eta",lower = 0.1, upper = 0.5))
+                          makeNumericParam("eta",lower = 0.01, upper = 0.1))
 resample_desc = makeResampleDesc("CV", iters = 5)
 control = makeTuneControlRandom(maxit = 10)
 tuned_params = tuneParams(learner = xgb_learner,
