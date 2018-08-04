@@ -1,22 +1,10 @@
 rm(list=ls())
-pkgs <- c("rprojroot","data.table","checkmate","mlr","ggplot2","corrplot","randomForest")
+pkgs <- c("rprojroot","data.table","checkmate","mlr","ggplot2","corrplot","randomForest","parallel","parallelMap")
 lapply(pkgs,require,character.only = TRUE)
 requireNamespace("withr")
 root = find_root(is_git_root)
-set.seed(1)
 
 data = fread("../data/full_data.csv")
-data = as.data.table(data)
-
-# add feature
-source(file.path(root, "preproc", "add_feature.R"))
-preproc(data)
-
-nameFactor = names(data)[unlist(lapply(data, function(x) is.character(x)))]
-nameFactor = nameFactor[-14]
-data = createDummyFeatures(as.data.frame(data), target = "TARGET",
-                           cols = nameFactor,
-                           method = "reference")
 data$Add_RATIO_MEAN_PAYMENT_PREV[is.na(data$Add_RATIO_MEAN_PAYMENT_PREV)] = mean(data$Add_RATIO_MEAN_PAYMENT_PREV, na.rm = TRUE)
 
 train = data[data$split == "train",]
@@ -42,32 +30,38 @@ const = c("CODE_GENDER.miss",
 train[,const]= NULL
 test[,const] = NULL
 
-train.task = makeClassifTask(id = "class", data = as.data.frame(train), target = "TARGET")
+train.task = makeClassifTask(id = "class", 
+                             data = as.data.frame(train), 
+                             target = "TARGET")
+set.seed(1)
 xgb_learner = makeLearner("classif.xgboost", 
                           predict.type = "prob",
                           par.vals = list(
                             objective = "binary:logistic",
                             eval_metric = "auc",
-                            nrounds = 100,
+                            nrounds = 100L,
+                            eta = 0.1,
                             verbose = 1
                           ))
+xgb_params = makeParamSet(makeIntegerParam("max_depth", lower = 5L, upper = 10L),
+                          makeIntegerParam("min_child_weight", lower = 1L, upper = 10L),
+                          makeNumericParam("subsample", lower = 0.5, upper = 1),
+                          makeNumericParam("colsample_bytree", lower = 0.5, upper = 1))
+resample_desc = makeResampleDesc("CV", iters = 5, stratify = TRUE)
+control = makeTuneControlRandom(maxit = 1L)
 
-xgb_params = makeParamSet(makeIntegerParam("max_depth", lower = 5, upper = 8),
-                          makeNumericParam("eta",lower = 0.01, upper = 0.1))
-resample_desc = makeResampleDesc("CV", iters = 5)
-control = makeTuneControlRandom(maxit = 10)
+parallelStartSocket(cpus = detectCores())
 tuned_params = tuneParams(learner = xgb_learner,
                           task = train.task,
                           resampling = resample_desc,
                           par.set = xgb_params,
-                          control = control)
+                          control = control,
+                          show.info = TRUE)
+parallelStop()
 
 xgb_tuned_learner = setHyperPars(learner = xgb_learner, par.vals = tuned_params$x)
 xgb_model = train(xgb_tuned_learner, train.task)
-
-xgb_model = train(xgb_learner, task = train.task)
 result = predict(xgb_model, newdata = test)
 pred.xgb = result$data$prob.1
 options(scipen = 3)
 pred = data.frame(SK_ID_CURR = SK_ID_CURR, TARGET = pred.xgb)
-write.csv(pred, file.path(root,"predict", "submisssions2907_1.csv"), row.names = FALSE)
