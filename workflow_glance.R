@@ -21,13 +21,16 @@ data = readData(version = 3) # version = 3 还未完成
 
 ##ISNA_indicator是否高度相关###########################################################
 matrix.cor = cor(data[,.SD,.SDcols = names(data)[grep("NA_",names(data))]])
-pdf(file.path(root,"plots", "corr_ISNA_variable.pdf"),width = 14, height = 14)
+pdf(file.path(root,"plots", "corr_ISNA_variable.pdf"),width = 16, height = 16)
 corrplot.mixed(matrix.cor, tl.col = "black", tl.pos = "lt")
 dev.off()
-## 以下几类变量相互corr较高 (>=0.9), 手动删除NA太多变量之后
-# 1. NA_TOTALAREA_MODE, NA_YEARS_BEGINEXPLUATATION, NA_FLOORSMAX, NA_LIVINGAREA, NA_ENTRANCES, NA_APARTMENT, NA_ELEVATORS
-# 2. NA_AMT_REQ, NA_BUREAU, NA_DAYS_CREDIT_ENDDATE
-# 3. NA_POS_CASH, NA_INSTALLMENT_PAYMENT, NA_PREV_APPLICATION
+
+## 以下几类变量相互corr较高 (>=0.9), 未手动删除NA太多变量
+# 1. NA_YEARS_BEGINEXPLUATATION, NA_FLOORSMAX, NA_ENTRANCES, NA_APARTMENT, NA_ELEVATORS, NA_NONLIVINGAREA, NA_TOTALAREA_MODE
+# 2. NA_LANDAREA, NA_LIVINGAREA
+# 3. NA_YEARS_BUILD, NA_FLOORSMIN, NA_LIVINGAPARTMENTS, NA_NONLIVINGAPARTMENTS, NA_COMMONAREA
+# 4. NA_DAYS_CREDIT_ENDDATE, NA_BUREAU, NA_AMT_REQ
+# 5. NA_INSTALLMENT_PAYMENT, NA_POS_CASH, NA_PREV_APPLICATION, NA_DAYS_FIRST_DRAWING_MEAN, NA_AMT_DRAWINGS_MEAN
 
 # drop掉相关性太高的ISNA变量
 varDrop_ISNA = c("NA_YEARS_BEGINEXPLUATATION",
@@ -36,8 +39,13 @@ varDrop_ISNA = c("NA_YEARS_BEGINEXPLUATATION",
              "NA_ENTRANCES",
              "NA_APARTMENT", 
              "NA_ELEVATORS",
+             "NA_FLOORSMIN",
+             "NA_LIVINGAPARTMENTS",
+             "NA_NONLIVINGAPARTMENTS",
+             "NA_COMMONAREA",
              "NA_BUREAU",
              "NA_DAYS_CREDIT_ENDDATE",
+             "NA_AMT_ANNUITY_MEAN",
              "NA_INSTALLMENT_PAYMENT")
 # 去除意义上重复的变量
 varDrop_Replicated = c("YEARS_BEGINEXPLUATATION_MODE",
@@ -46,14 +54,7 @@ varDrop_Replicated = c("YEARS_BEGINEXPLUATATION_MODE",
                        "YEARS_BEGINEXPLUATATION_MEDI",
                        "FLOORSMAX_MEDI",
                        "LIVINGAREA_MEDI")
-
 data = data[,c(varDrop_ISNA,varDrop_Replicated) := NULL]
-## 以下几类变量相互corr较高 (>=0.9), 未手动删除NA太多变量
-# 1. NA_YEARS_BEGINEXPLUATATION, NA_FLOORSMAX, NA_ENTRANCES, NA_APARTMENT, NA_ELEVATORS, NA_NONLIVINGAREA, NA_TOTALAREA_MODE
-# 2. NA_LANDAREA, NA_LIVINGAREA
-# 3. NA_YEARS_BUILD, NA_FLOORSMIN, NA_LIVINGAPARTMENTS, NA_NONLIVINGAPARTMENTS, NA_COMMONAREA
-# 4. NA_DAYS_CREDIT_ENDDATE, NA_BUREAU, NA_AMT_REQ
-# 5. NA_INSTALLMENT_PAYMENT, NA_POS_CASH, NA_PREV_APPLICATION, NA_DAYS_FIRST_DRAWING_MEAN, NA_AMT_DRAWINGS_MEAN
 
 # add feature
 source(file.path(root, "preproc", "add_feature.R"))
