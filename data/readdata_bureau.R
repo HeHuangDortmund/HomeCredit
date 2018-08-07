@@ -39,8 +39,11 @@ readData = function(){
   bureauMerged[, `:=`(DAYS_CREDIT_ENDDATE_POSITIVE = as.integer(ifelse(DAYS_CREDIT_ENDDATE >0 , 1, 0)),
                       Add_RATIO_DEBT_CREDIT_BUREAU = AMT_CREDIT_SUM_DEBT / AMT_CREDIT_SUM,
                       Add_RATIO_LIMIT_CREDIT_BUREAU = AMT_CREDIT_SUM_LIMIT / AMT_CREDIT_SUM,
-                      Add_RATIO_OVERDUE_CREDIT_BUREAU = AMT_CREDIT_SUM_OVERDUE / AMT_CREDIT_SUM,
-                      Add_RATIO_PAYMENT_BUREAU = AMT_ANNUITY / AMT_CREDIT_SUM
+                      # Add_RATIO_OVERDUE_CREDIT_BUREAU = AMT_CREDIT_SUM_OVERDUE / AMT_CREDIT_SUM,
+                      Add_RATIO_PAYMENT_BUREAU =  AMT_ANNUITY / AMT_CREDIT_SUM,
+                      Add_RATIO_DEBT_LIMIT_CREDIT_BUREAU = AMT_CREDIT_SUM_DEBT / AMT_CREDIT_SUM_LIMIT,
+                      Add_DIFF_DAYS_ENDDATE = DAYS_CREDIT_ENDDATE - DAYS_ENDDATE_FACT,
+                      Add_CREDIT_TERM_BUREAU = DAYS_CREDIT_ENDDATE - DAYS_CREDIT
                       ), by = SK_ID_BUREAU]
   
   temp_name = setdiff(names(bureauMerged),c("CREDIT_ACTIVE",
@@ -63,7 +66,9 @@ readData = function(){
              "AMT_CREDIT_SUM_OVERDUE",
              "CNT_CREDIT_PROLONG",
              "AMT_ANNUITY",
-             "DAYS_CREDIT_ENDDATE_POSITIVE")
+             "DAYS_CREDIT_ENDDATE_POSITIVE",
+             "Add_DIFF_DAYS_ENDDATE",
+             "Add_CREDIT_TERM_BUREAU")
   varMEAN = c("DAYS_CREDIT",
               "CREDIT_DAY_OVERDUE",
               "DAYS_CREDIT_ENDDATE",
@@ -87,8 +92,10 @@ readData = function(){
               "BUREAU_STATUS_ENTROPY",
               "Add_RATIO_DEBT_CREDIT_BUREAU",
               "Add_RATIO_LIMIT_CREDIT_BUREAU",
-              "Add_RATIO_OVERDUE_CREDIT_BUREAU",
-              "Add_RATIO_PAYMENT_BUREAU"
+              # "Add_RATIO_OVERDUE_CREDIT_BUREAU",
+              "Add_RATIO_PAYMENT_BUREAU",
+              "Add_DIFF_DAYS_ENDDATE",
+              "Add_CREDIT_TERM_BUREAU"
               )
   varMAX = c("CREDIT_DAY_OVERDUE",
              "DAYS_CREDIT",
@@ -100,14 +107,18 @@ readData = function(){
              "AMT_CREDIT_SUM_DEBT",
              "AMT_CREDIT_SUM_LIMIT",
              "BUREAU_MONTH_BALANCE_MAX",
-             "BUREAU_STATUS_ENTROPY")
+             "BUREAU_STATUS_ENTROPY",
+             "Add_DIFF_DAYS_ENDDATE",
+             "Add_CREDIT_TERM_BUREAU")
   varMIN = c("DAYS_CREDIT",
              "DAYS_CREDIT_ENDDATE",
              "DAYS_ENDDATE_FACT",
              "AMT_CREDIT_MAX_OVERDUE",
              "CNT_CREDIT_PROLONG",
              "BUREAU_MONTH_BALANCE_MIN",
-             "BUREAU_STATUS_ENTROPY")
+             "BUREAU_STATUS_ENTROPY",
+             "Add_DIFF_DAYS_ENDDATE",
+             "Add_CREDIT_TERM_BUREAU")
   varSUM = paste(varSUM,"SUM",sep = "_")
   varMEAN = paste(varMEAN,"MEAN",sep = "_")
   varMAX = paste(varMAX,"MAX",sep = "_")
