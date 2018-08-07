@@ -14,11 +14,25 @@ readData = function(){
   installments_payments[, INSTALMENTS_DPD := DAYS_ENTRY_PAYMENT - DAYS_INSTALMENT]# 逾期天数 >0 代表逾期
   installments_payments[, INSTALMENTS_LESS := AMT_PAYMENT - AMT_INSTALMENT]        # 少还金额 <0 代表少还了
   
+  # installments_payments = installments_payments[order(SK_ID_CURR, SK_ID_PREV, NUM_INSTALMENT_NUMBER)] # take order and then analysis the trend
+  # temp1 = installments_payments[!is.na(DAYS_ENTRY_PAYMENT)]
+  # temp = temp1[, lapply(.SD, function(x) {lm(x~(seq(1,length(NUM_INSTALMENT_NUMBER),by=1)-1))$coefficients}), 
+  #                                .SDcols = c("INSTALMENTS_DPD","INSTALMENTS_LESS"), 
+  #                                by = SK_ID_PREV] # this takes around 30mins, so save and load txt
+  
+  temp_trend = fread("trend_installments.txt", drop = "V1")
+  names(temp_trend)[-1] = c("INSTALMENTS_DPD_TREND","INSTALMENTS_LESS_TREND")
+  
   # 对变量进行汇总(mean和max)
   temp_name = setdiff(names(installments_payments), c("SK_ID_PREV","SK_ID_CURR","NUM_INSTALMENT_VERSION"))
   temp = installments_payments[, c(lapply(.SD, mean, na.rm = TRUE),
-                                   lapply(.SD, max, na.rm = TRUE)), .SDcols = temp_name, by = "SK_ID_CURR"]
-  names(temp)[-1] = paste(names(temp)[-1], rep(c("MEAN","MAX"),each = length(temp_name)), sep = "_")
+                                   lapply(.SD, max, na.rm = TRUE)), .SDcols = temp_name, by = list(SK_ID_CURR,SK_ID_PREV)]
+  names(temp)[-c(1,2)] = paste(names(temp)[-c(1,2)], rep(c("MEAN","MAX"),each = length(temp_name)), sep = "_")
+  
+  temp = merge(temp, temp_trend, all.x = TRUE, by = c("SK_ID_PREV"))
+  temp_agg_max = temp[, lapply(.SD, max, na.rm = TRUE), .SDcols = names(temp)[grep("MAX",names(temp))], by = SK_ID_CURR]
+  temp_agg_mean = temp[, lapply(.SD, mean, na.rm = TRUE), .SDcols = setdiff(names(temp),c(names(temp)[grep("MAX",names(temp))],"SK_ID_CURR","SK_ID_PREV")), by = SK_ID_CURR]
+  temp_agg = merge(temp_agg_max, temp_agg_mean, all = TRUE, by = c("SK_ID_CURR"))
   
   # 对于每一个SK_ID_PREV求INSTALLMENTS的数量, 然后求MEAN进行汇总
   temp1 = installments_payments[,.(Nr_INSTALLMENTS = .N),by = list(SK_ID_CURR,SK_ID_PREV)]
@@ -44,9 +58,9 @@ readData = function(){
   
   # merge
   temp_all = merge(temp1, temp2, all = TRUE, by = "SK_ID_CURR")
-  temp_all = merge(temp_all, temp, all = TRUE, by = "SK_ID_CURR")
+  temp_all = merge(temp_all, temp_agg, all = TRUE, by = "SK_ID_CURR")
   temp_all = merge(temp_all, temp_cat_wide, all = TRUE, by = "SK_ID_CURR")
- 
+  
   temp_all$DAYS_ENTRY_PAYMENT_MEAN[is.nan(temp_all$DAYS_ENTRY_PAYMENT_MEAN)] = NA
   temp_all$AMT_PAYMENT_MEAN[is.nan(temp_all$AMT_PAYMENT_MEAN)] = NA
   temp_all$INSTALMENTS_DPD_MEAN[is.nan(temp_all$INSTALMENTS_DPD_MEAN)] = NA
@@ -58,5 +72,6 @@ readData = function(){
   temp_all$INSTALMENTS_LESS_MAX[is.infinite(temp_all$INSTALMENTS_LESS_MAX)] = NA
   
   installments_payments = temp_all
+  gc()
   return(installments_payments)
 }

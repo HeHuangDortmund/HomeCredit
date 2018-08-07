@@ -29,6 +29,13 @@ readData = function(version = 1){
                                                 credit_card_balance$AMT_PAYMENT_CURRENT == 0 &
                                                 credit_card_balance$AMT_DRAWINGS_CURRENT == 0] = 0
   
+  # credit_card_balance = credit_card_balance[order(SK_ID_CURR, SK_ID_PREV, MONTHS_BALANCE)]
+  # temp_trend = credit_card_balance[, lapply(.SD, function(x) {lm(x~(seq(1,length(MONTHS_BALANCE),by=1)-1))$coefficients}),
+  #                                    .SDcols = c("AMT_BALANCE"),
+  #                                    by = SK_ID_PREV]
+  # names(temp_trend)[-1] = c("AMT_BALANCE_TREND") # run for 2min
+  temp_trend = fread("trend_credit_card.txt", drop = "V1")
+  
   # add hand maded features
   credit_card_balance[,`:=`(Add_DIFF_BALANCE_LIMIT_CARD = AMT_BALANCE - AMT_CREDIT_LIMIT_ACTUAL,
                             Add_DIFF_DRAWINGS_LIMIT_CARD = AMT_DRAWINGS_CURRENT - AMT_CREDIT_LIMIT_ACTUAL,
@@ -50,6 +57,8 @@ readData = function(version = 1){
   varSUMMAX = c("SK_DPD", "SK_DPD_DEF","AMT_CREDIT_LIMIT_ACTUAL","CNT_INSTALMENT_MATURE_CUM",names(credit_card_balance)[grep("Add",names(credit_card_balance))])
   temp_mean = credit_card_balance[,lapply(.SD, mean, na.rm = TRUE), .SDcols = varMEAN, by = list(SK_ID_CURR,SK_ID_PREV)]
   names(temp_mean)[-c(1,2)] = paste(names(temp_mean)[-c(1,2)],"MEAN",sep = "_")
+  temp_mean = merge(temp_mean, temp_trend, all=TRUE, by = c("SK_ID_PREV"))
+  
   temp_summax = credit_card_balance[,c(lapply(.SD, sum, na.rm = TRUE),
                                  lapply(.SD, max, na.rm = TRUE)), .SDcols = varSUMMAX, by = list(SK_ID_CURR,SK_ID_PREV)]
   names(temp_summax)[-c(1,2)] = paste(names(temp_summax)[-c(1,2)], rep(c("SUM","MAX"), each = length(varSUMMAX)), sep = "_")
