@@ -68,11 +68,5 @@ readData = function(){
                     Add_CREDIT_per_FAM = AMT_CREDIT / CNT_FAM_MEMBERS,
                     Add_CREDIT_per_ADULT = AMT_CREDIT / (CNT_FAM_MEMBERS - CNT_CHILDREN))]
   application$Add_RATIO_PHONE_EMPLOYED[is.infinite(application$Add_RATIO_PHONE_EMPLOYED)] = NA # DAYS_EMPLOYED = 0 (self-employed) generates -Inf
-  application[, `:=`(Add_MEAN_AMT_ANNUITY_by_CODE_GENDER = mean(AMT_ANNUITY, na.rm = TRUE),
-                     Add_MEAN_AMT_CREDIT_by_CODE_GENDER = mean(AMT_CREDIT, na.rm = TRUE)),by = CODE_GENDER]
-  temp = application[, lapply(.SD, mean, na.rm = TRUE), .SDcols = c("EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3"), by = list(CODE_GENDER,NAME_EDUCATION_TYPE,OCCUPATION_TYPE)]
-  names(temp)[-c(1:3)] = c("EXT_SOURCE_1_GENDER_EDU_OCC", "EXT_SOURCE_2_GENDER_EDU_OCC", "EXT_SOURCE_3_GENDER_EDU_OCC")
-  application = merge(application, temp, all = TRUE, by = c("CODE_GENDER","NAME_EDUCATION_TYPE","OCCUPATION_TYPE"))
-  # OCCUPATION_TYPE, NAME_CONTRACT_STATUS, ORGANIZATION_TYPE
   return(application)
 }
