@@ -29,11 +29,16 @@ readData = function(version = 1){
                                                 credit_card_balance$AMT_PAYMENT_CURRENT == 0 &
                                                 credit_card_balance$AMT_DRAWINGS_CURRENT == 0] = 0
   
+  ############################## calculate the trend and intercept variables ###################################################################
   # credit_card_balance = credit_card_balance[order(SK_ID_CURR, SK_ID_PREV, MONTHS_BALANCE)]
-  # temp_trend = credit_card_balance[, lapply(.SD, function(x) {lm(x~(seq(1,length(MONTHS_BALANCE),by=1)-1))$coefficients}),
+  # temp_trend1 = credit_card_balance[, lapply(.SD, function(x) {lm(x~(seq(1,length(MONTHS_BALANCE),by=1)))$coefficients[1]}),
   #                                    .SDcols = c("AMT_BALANCE"),
   #                                    by = SK_ID_PREV]
-  # names(temp_trend)[-1] = c("AMT_BALANCE_TREND") # run for 2min
+  # temp_trend2 = credit_card_balance[, lapply(.SD, function(x) {lm(x~(seq(1,length(MONTHS_BALANCE),by=1)))$coefficients[2]}),
+  #                                   .SDcols = c("AMT_BALANCE"),
+  #                                   by = SK_ID_PREV]
+  # temp_trend = merge(temp_trend1,temp_trend2, all = TRUE, by = "SK_ID_PREV")
+  ##############################################################################################################################################
   temp_trend = fread("trend_credit_card.txt", drop = "V1")
   
   # add hand maded features

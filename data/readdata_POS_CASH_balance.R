@@ -10,18 +10,20 @@ readData = function(version = 1){
     POS_CASH_balance$CNT_INSTALMENT_FUTURE[is.na(POS_CASH_balance$CNT_INSTALMENT_FUTURE)] = mean(POS_CASH_balance$CNT_INSTALMENT_FUTURE, na.rm = TRUE)
   }
   POS_CASH_balance[, Add_RATIO_INSTALMENT_LEFT := CNT_INSTALMENT_FUTURE / CNT_INSTALMENT]
-  POS_CASH_balance = POS_CASH_balance[order(SK_ID_CURR, SK_ID_PREV, MONTHS_BALANCE)]
-
-  # temp_trend1 = POS_CASH_balance[, lapply(.SD, function(x) {lm(x~(seq(1,length(MONTHS_BALANCE),by=1)-1))$coefficients}),
-  #                                .SDcols = c("SK_DPD","SK_DPD_DEF"),
-  #                                by = SK_ID_PREV] # 28min
+  
+  ############################## calculate the trend and intercept variables ###################################################################
+  # POS_CASH_balance = POS_CASH_balance[order(SK_ID_CURR, SK_ID_PREV, MONTHS_BALANCE)]
   # temp_data = POS_CASH_balance[!is.na(Add_RATIO_INSTALMENT_LEFT)]
-  # temp_trend2 = temp_data[, lapply(.SD, function(x) {lm(x~(seq(1,length(MONTHS_BALANCE),by=1)-1))$coefficients}),
+  # temp_trend1 = temp_data[, lapply(.SD, function(x) {lm(x~(seq(1,length(MONTHS_BALANCE),by=1)))$coefficients[1]}),
   #                                .SDcols = c("Add_RATIO_INSTALMENT_LEFT"),
   #                                by = SK_ID_PREV] # 14min
+  # temp_trend2 = temp_data[, lapply(.SD, function(x) {lm(x~(seq(1,length(MONTHS_BALANCE),by=1)))$coefficients[2]}),
+  #                         .SDcols = c("Add_RATIO_INSTALMENT_LEFT"),
+  #                         by = SK_ID_PREV]
   # temp_trend = merge(temp_trend1, temp_trend2, all = TRUE, by = c("SK_ID_PREV"))
+  ##############################################################################################################################################
+  
   temp_trend = fread("trend_pos_cash.txt", drop = "V1")
-  names(temp_trend)[-1] = c("SK_DPD_TREND","SK_DPD_DEF_TREND","Add_RATIO_INSTALMENT_LEFT_TREND")
   
   # 对每个变量通过求MEAN和MAX进行汇总
   temp_name = setdiff(names(POS_CASH_balance),c("SK_ID_PREV","SK_ID_CURR","NAME_CONTRACT_STATUS"))
@@ -33,7 +35,7 @@ readData = function(version = 1){
   
   # 对于每一个SK_ID_PREV求MONTH_BALANCE的数量, 然后求MEAN进行汇总
   temp2 = POS_CASH_balance[,.(Nr_POSCASH_MONTH = .N),by = list(SK_ID_CURR,SK_ID_PREV)]
-  # merge temp_trend
+  ## merge temp_trend
   temp2 = merge(temp2, temp_trend, all = TRUE, by = "SK_ID_PREV")
   temp2 = temp2[, lapply(.SD, mean, na.rm = TRUE), .SDcols = names(temp2)[-c(1,2)],by = SK_ID_CURR]
   names(temp2)[-1] = paste(names(temp2)[-1],"MEAN",sep = "_")
